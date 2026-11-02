@@ -133,6 +133,9 @@ def main():
                 res.append((xs[-2] - col[0]) * 0.1)
             res += list(np.diff(xs, 2) * 0.3)
             lo_, hi_ = sorted((X_OUT, X_IN))
+            if far:   # photo 20: far bundle edge ~+345 apparent (~+360 true) ahead of the catalyst (y < 300)
+                ys_ = np.array([at(u, v, x[idx[(ci, j)]])[1] for j, (u, v) in enumerate(tubes[ci]["uv"])])
+                hi_ = np.where(ys_ < 300.0, 342.0, hi_)
             res += list(np.maximum(0, lo_ - xs) * 3.0)
             res += list(np.maximum(0, xs - hi_) * 3.0)
             if ci in BPRI:
@@ -155,8 +158,8 @@ def main():
                 Dm = np.where(keep[cis[a]][:, None] & keep[cis[b]][None, :], Dm, 1e9)
                 if a == b:                                  # self: only far-apart parts of the tube
                     seg = np.cumsum(np.r_[0, np.linalg.norm(np.diff(A, axis=0), axis=1)])
-                    far = np.abs(seg[:, None] - seg[None, :]) > 3.5 * lim
-                    Dm = np.where(far, Dm, 1e9)
+                    apart = np.abs(seg[:, None] - seg[None, :]) > 3.5 * lim
+                    Dm = np.where(apart, Dm, 1e9)
                 v = np.maximum(0, (lim - Dm)).max(axis=1)
                 res += list(v * 2.0)
         return np.array(res)

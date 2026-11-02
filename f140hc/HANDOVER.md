@@ -320,8 +320,12 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
     occlusion list yet.
   - **Layout:** front S-bends with the cyl-7 bellows; cyl 8 merges into cyl 9's fat descent and
     cyl 11 into cyl 10's; cyl-12 rear bellows tube.
-  - **Still to do:** measure the far envelope in photo 20; add an occlusion list from photo 04;
-    the real rear arches reach higher, up to the cover lip.
+  - **Far envelope, measured in photo 20** by scanning the silhouette: the two banks are nearly
+    symmetric. From y ≈ 330 back, the catalysts set the edge (±390 to ±410). Ahead of y 300 the
+    far bundle edge is about +345 apparent (near: −360). The solver uses a y-dependent limit:
+    +342 for y < 300, +366 behind.
+  - **Still to do:** an occlusion list from photo 04; the real rear arches reach higher, up to the
+    cover lip.
 
 - **Cam cover:**
   - Walls are now ~8 mm thick. The old 1.7 mm walls plus the edge bevel left holes: the cam
