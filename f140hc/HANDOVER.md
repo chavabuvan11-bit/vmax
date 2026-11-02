@@ -234,9 +234,12 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
       - Landmarks are in `measurements/header_landmarks_ba.json`. They agree with the model
         within about 10 mm for both bellows, the O2 sensor and the alternator.
       - The arch top comes out at −434, so the model anchor is now −415.
-      - **Clamp disagrees:** z 15 against 55 from the side photo. Recheck the clamp picks in
-        photo 16 and video 11.4 s. Photo 13 errors reach 42 px with five views, so one of the
-        added picks is probably wrong.
+      - **Clamp resolved:** photo 16's clamp pick was wrong and has been removed. Without it the
+        clamp solves to (−360, 331, 50), matching the model, and the worst photo 13 error drops
+        from 43 to 27 px.
+      - **Caveat:** k_v swings between 0.95 and 1.0 depending on the pick set, and the photo 13
+        lens is poorly constrained. Add features at different depths (differential flange,
+        alternator pulley, pod throttle body) before trusting k_v.
 - **After this section:** the front (timing cover shape, coolant manifold, belt detail), the
   intake pods (the user said to deprioritise them earlier), the gearbox, mufflers and
   tailpipes, and the +X side.

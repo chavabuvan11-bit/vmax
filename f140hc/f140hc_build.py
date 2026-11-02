@@ -154,7 +154,7 @@ P = {
                          {1: -355.0, 2: -400.0, 3: -415.0, 4: -405.0, 6: -375.0},   # arch top ~-415 (3 methods)
                          {1: -322.0, 2: -322.0, 4: -335.0}],
         "neck_out": 0.62,                             # outboard component of the inlet axis
-        "sensor_angle": 15.0,                         # O2 sensor on the upper-outboard shoulder (deg)
+        "sensor_angle": 22.0,                         # O2 sensor shoulder angle: joint solve puts it at x ~-359
         "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
         "cat_x": 320.0,
         # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
