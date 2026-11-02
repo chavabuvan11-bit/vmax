@@ -134,6 +134,7 @@ P = {
         "tube_zoom": (560.0, 560.0, 2.0),             # zoom origin u, v and scale
         "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
         "port_z_above_deck": 20.0,
+        "tube_scale": 1.18,                           # traced edges sit inside the highlights
         "collector": (-335.0, 308.0, 44.0),
         "clamp": (319.0, 29.0), "clamp_dir": (77.0, -64.0), "clamp_r": 33.0,
         "cat_x": 320.0,
@@ -168,6 +169,7 @@ P = {
         "oil_fittings": [(292.0, -50.0), (248.0, -62.0), (160.0, -46.0), (118.0, -46.0), (300.0, -110.0)],
         "oil_sensor": (-182.0, 180.0, -20.0),
         "diff_centre": (936.0, 55.0),
+        "sump_lobe": (-215.0, 486.0, -107.0, 130.0, 111.0, 69.0),
     },
     "accessories": {
         "alternator": (-244.0, 46.0, 32.0, 0, 0),         # body built in near_side
@@ -486,7 +488,7 @@ def _set(bsdf, key, val):
         bsdf.inputs[key].default_value = val
 
 
-def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=False, alpha=1.0):
+def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=False, alpha=1.0, cast=0.0):
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     if m.node_tree is None:
         m.use_nodes = True
@@ -512,6 +514,26 @@ def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=
         nt.links.new(tc.outputs["Object"], noise.inputs["Vector"])
         nt.links.new(noise.outputs["Fac"], bump.inputs["Height"])
         nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    if cast > 0:               # sand-cast skin: mottled roughness + fine grain
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        n1 = nt.nodes.new("ShaderNodeTexNoise")
+        n1.inputs["Scale"].default_value = 140.0
+        if "Detail" in n1.inputs:
+            n1.inputs["Detail"].default_value = 8.0
+        mr = nt.nodes.new("ShaderNodeMapRange")
+        mr.inputs["To Min"].default_value = max(0.0, rough - 0.12)
+        mr.inputs["To Max"].default_value = min(1.0, rough + 0.12)
+        n2 = nt.nodes.new("ShaderNodeTexNoise")
+        n2.inputs["Scale"].default_value = 2400.0
+        bump = nt.nodes.new("ShaderNodeBump")
+        bump.inputs["Strength"].default_value = cast
+        bump.inputs["Distance"].default_value = 0.0004
+        nt.links.new(tc.outputs["Object"], n1.inputs["Vector"])
+        nt.links.new(tc.outputs["Object"], n2.inputs["Vector"])
+        nt.links.new(n1.outputs["Fac"], mr.inputs["Value"])
+        nt.links.new(mr.outputs["Result"], bsdf.inputs["Roughness"])
+        nt.links.new(n2.outputs["Fac"], bump.inputs["Height"])
+        nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
     if weave:                  # 2x2 twill approximation for carbon
         tc = nt.nodes.new("ShaderNodeTexCoord")
         chk = nt.nodes.new("ShaderNodeTexChecker")
@@ -528,8 +550,8 @@ def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=
 
 def build_materials():
     return {
-        "alu_cast": material("F140_Aluminium_Cast", (0.60, 0.61, 0.62), 1.0, 0.55),
-        "block_cast": material("F140_Block_Cast", (0.42, 0.42, 0.42), 1.0, 0.62),
+        "alu_cast": material("F140_Aluminium_Cast", (0.60, 0.61, 0.62), 1.0, 0.55, cast=0.35),
+        "block_cast": material("F140_Block_Cast", (0.30, 0.30, 0.30), 1.0, 0.62, cast=0.4),
         "alu_mach": material("F140_Aluminium_Machined", (0.80, 0.80, 0.82), 1.0, 0.22),
         "steel": material("F140_Steel_Forged", (0.46, 0.46, 0.48), 1.0, 0.30),
         "titanium": material("F140_Titanium", (0.55, 0.52, 0.48), 1.0, 0.34),
@@ -544,7 +566,7 @@ def build_materials():
         "ceramic": material("F140_Plug_Ceramic", (0.85, 0.85, 0.82), 0.0, 0.30),
         "bolt": material("F140_Bolt_Zinc", (0.70, 0.70, 0.66), 1.0, 0.30),
         "chain": material("F140_Chain", (0.20, 0.20, 0.21), 1.0, 0.30),
-        "magnesium": material("F140_Gearbox_Cast", (0.58, 0.58, 0.57), 1.0, 0.55),
+        "magnesium": material("F140_Gearbox_Cast", (0.58, 0.58, 0.57), 1.0, 0.55, cast=0.35),
         "polished": material("F140_Stainless_Polished", (0.80, 0.80, 0.82), 1.0, 0.15),
         "bellows": material("F140_Bellows", (0.72, 0.72, 0.74), 1.0, 0.20),
         "envelope": material("F140_Envelope", (0.2, 0.6, 1.0), 0.0, 0.5, alpha=0.15),
@@ -1213,6 +1235,10 @@ def build():
     sx_, sy_, sz_ = NS["oil_sensor"]
     mb.lathe([(8, 0), (8, 8), (5, 8), (5, 26), (3, 30)], 16, T(sx_, sy_, sz_), mi=1)
     mb.finish("F140HC_OilPumpBody", c_house, [m_cast, M["steel"]], parent=root)
+    # dry-sump lobe visible under the catalyst front
+    mb = MB()
+    mb.rbox(*NS["sump_lobe"], 18.0, 4)
+    mb.finish("F140HC_SumpLobe", c_house, [M["block_cast"]], parent=root)
     # differential side cover and output flange on the gearbox (left of the section)
     dyc, dzc = NS["diff_centre"]
     dxc = -P["gearbox"]["half_width"]
@@ -1409,6 +1435,7 @@ def build():
             u_, v_ = zu0 + X / zk, zv0 + Y / zk
             return y0_ - (u_ - u0_) * ky_, z0_ - (v_ - v0_) * kz_
         mb_b = MB()
+        mb_f = MB()
         for ci, depth, trace, bell in EX["traced_tubes"]:
             c = b["cyls"][ci]
             yc = c["y"] - dy
@@ -1418,11 +1445,16 @@ def build():
             pts3 = []
             for X, Y, rz in trace:
                 y_, z_ = zoom_to_yz(X, Y)
-                pts3.append((depth, y_, z_, rz / zk * ky_))
+                pts3.append((depth, y_, z_, rz / zk * ky_ * EX["tube_scale"]))
             r_t = sum(p[3] for p in pts3) / len(pts3)
             path = [p0, p1, ((p1[0] + pts3[0][0]) / 2, (p1[1] + pts3[0][1]) / 2, (p1[2] + pts3[0][2]) / 2)]
             path += [p[:3] for p in pts3] + [EX["collector"]]
             nurbs_tube(f"F140HC_Primary_C{c['num']:02d}", [W(p) for p in path], r_t, m_pol)
+            Mf, _ = axis_matrix(W(p0), W((p0[0] - 0.843, p0[1], p0[2] - 0.537)))
+            mb_f.rbox(0, 0, 5.0, 74.0, 58.0, 10.0, 3.0, 2, M=Mf)
+            for dxs in (-28.0, 28.0):
+                mb_f.lathe([(4.0, 0.0), (4.0, 22.0)], 12, Mf @ T(dxs, 0, 0), mi=1)
+                mb_f.lathe([(7.5, 10.0), (7.5, 18.0)], 6, Mf @ T(dxs, 0, 0), mi=1)
             for i0, i1 in bell:                              # corrugated flex section
                 Mb, Lb = axis_matrix(W(pts3[i0][:3]), W(pts3[i1][:3]))
                 n = 70
@@ -1433,6 +1465,7 @@ def build():
                     mb_b.lathe([(r_t + 0.5, z_ - 7), (r_t + 4.5, z_ - 7), (r_t + 4.5, z_ + 7), (r_t + 0.5, z_ + 7)],
                                40, Mb, closed=True)
         mb_b.finish(f"F140HC_FlexBellows_{tag}", c_ind, [M["bellows"]], parent=root)
+        mb_f.finish(f"F140HC_HeaderFlanges_{tag}", c_ind, [M["steel"], M["bolt"]], parent=root)
         mb = MB()                                            # collector bulb above the clamp
         mb.lathe([(0, -40), (20, -36), (34, -20), (38, 0), (34, 20), (20, 36), (0, 40)], 40,
                  T(*W(EX["collector"])) @ RX(90.0 - 40.0))
