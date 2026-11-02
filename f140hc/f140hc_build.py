@@ -97,14 +97,48 @@ P = {
 
     # --- EST: castings ----------------------------------------------------------------
     "barrel_half_width": 78.0,     # cylinder bank casting, half width
-    "head_half_width": 82.0,
-    "head_height": 150.0,          # deck face to cam-cover face
+    "head_half_width": 100.0,      # front photo 11: covers ~1.8x their width from the crank
+    "head_height": 138.0,          # deck face to cam-cover face (side photo 13 overlay)
     "gallery_floor": 62.0,         # above deck
-    "cover_height": 45.0,
+    "cover_height": 95.0,          # front photo 11 / side photo 13: covers are chunky
     "crankcase_half_width": 150.0,
     "crankcase_bottom": -110.0,    # below crank axis
     "crankcase_top": 105.0,
     "sump_depth": 40.0,            # dry-sump pan below crankcase
+    # MEASURED (Amalgam 1:4 photos, top view 20 + side view 13): cam covers run ~7.2 bore
+    # pitches, overhanging the block at the front to enclose the cam drive
+    # side photo 13, coil centres found by segmentation: cover = 7.5 coil pitches; front coil
+    # sits 1.8 pitches behind the cover front, rear coil 0.7 pitches ahead of the cover rear
+    "front_valley_z": 270.0,       # top of the front casting between the banks
+    # front accessories: (x, z) of the pulley centre vs crank axis, pulley r, body r, body length
+    # front photo 11, scaled with the cam cover as the ruler (EST +-10%)
+    "crank_pulley_r": 57.0,
+    "accessories": {
+        "alternator": (-244.0, 80.0, 30.0, 63.0, 150.0),
+        "idler_upper": (-134.0, 84.0, 25.0, 0, 0),
+        "idler_lower": (-176.0, 13.0, 24.0, 0, 0),
+        "ac_compressor": (168.0, -13.0, 55.0, 58.0, 170.0),
+        "water_pump": (-202.0, -60.0, 34.0, 45.0, 70.0),
+    },
+    "head_front": -100.0,          # head / cam cover front face (block front = 0)
+    "head_rear_ext": 10.0,         # head / cam cover overhang past the block rear
+
+    # --- MEASURED: SP3 carbon intake. Plan widths from top photo 20 (as a fraction of the cam
+    # cover half-width, x 273 mm); heights from side photo 13 (fraction of cover length above
+    # the cover top). Extracted by colour segmentation, see tools/ in the README. --------------
+    "pod_base_z": 445.0,           # pod flange height above crank axis
+    "pod_inner_x": 16.0,           # pod inner edge from engine centreline (spine half-width)
+    "pod_length_frac": 0.97,       # pod length / cam cover length (rear ends flush)
+    "pod_outer": [(0.0, 245.0), (0.22, 247.0), (0.34, 240.0), (0.45, 224.0), (0.56, 208.0),
+                  (0.67, 183.0), (0.79, 147.0), (0.90, 110.0), (1.0, 80.0)],
+    "pod_height": [(0.0, 194.0), (0.16, 206.0), (0.28, 210.0), (0.40, 206.0), (0.53, 194.0),
+                   (0.66, 174.0), (0.78, 147.0), (0.84, 130.0), (0.90, 111.0), (1.0, 84.0)],
+    "pod_nose_start": 0.92,        # where the blunt nose begins to round off
+    "pod_crest": 0.62,             # crest position across the pod, inner 0 .. outer 1
+    "pod_scoop": 0.38,             # inner-rear scoop depth (fraction of height)
+    "tb_radius": 52.0,             # throttle body (side photo: ~104 mm across)
+    "tb_offset_x": 210.0,          # top photo: 0.77 of cover half-width
+    "tb_height": 113.0,            # above pod flange (side photo)
 
     # --- EST: timing drive (chain, one per bank) -----------------------------------------
     "chain_pitch": 8.0,
@@ -326,6 +360,43 @@ class MB:
             bm.faces.new((O[i][1], O[j][1], I[j][1], I[i][1]))
         self._tag([v for r in rows for v in r], mi)
 
+    def rbox(self, cx, cy, cz, sx, sy, sz, r, segs=3, M=None, mi=0):
+        """Box with rounded edges."""
+        verts = self.box(cx, cy, cz, sx, sy, sz, M=M, mi=mi)
+        edges = list({e for v in verts for e in v.link_edges})
+        res = bmesh.ops.bevel(self.bm, geom=edges, offset=r * MM, segments=segs, profile=0.5,
+                              affect='EDGES', clamp_overlap=True)
+        for f in res.get("faces", []):
+            f.material_index = mi
+
+    def loft(self, sections, mi=0, cap_start=True, cap_end=True):
+        """Skin closed rings of 3D mm points (same count per ring)."""
+        bm = self.bm
+        rings = [[bm.verts.new(Vector(p) * MM) for p in sec] for sec in sections]
+        n = len(rings[0])
+        for a, b in zip(rings[:-1], rings[1:]):
+            for i in range(n):
+                j = (i + 1) % n
+                bm.faces.new((a[i], a[j], b[j], b[i]))
+        if cap_start:
+            bm.faces.new(list(reversed(rings[0])))
+        if cap_end:
+            bm.faces.new(rings[-1])
+        self._tag([v for r in rings for v in r], mi)
+
+    def prism_xy(self, pts, z0, z1, mi=0):
+        """Closed prism from an XY polygon (mm), extruded from z0 to z1."""
+        bm = self.bm
+        f = [bm.verts.new(Vector((x, y, z0)) * MM) for x, y in pts]
+        b = [bm.verts.new(Vector((x, y, z1)) * MM) for x, y in pts]
+        n = len(pts)
+        bm.faces.new(list(reversed(f)))
+        bm.faces.new(b)
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new((f[i], f[j], b[j], b[i]))
+        self._tag(f + b, mi)
+
     def bevel_all(self, offset_mm, segments=3):
         bmesh.ops.bevel(self.bm, geom=list(self.bm.edges), offset=offset_mm * MM,
                         segments=segments, profile=0.5, affect='EDGES', clamp_overlap=True)
@@ -528,8 +599,8 @@ def derive():
     order_index = {c: i for i, c in enumerate(BANK_ORDER)}
     banks = []
     for bi, (gamma, first, yshift, inb, label) in enumerate((
-            (-g["half"], 1, 0.0, +1, "1-6"),
-            (+g["half"], 7, P["bank_offset"], -1, "7-12"))):
+            (-g["half"], 1, P["bank_offset"], +1, "1-6"),     # -X bank sits rearward
+            (+g["half"], 7, 0.0, -1, "7-12"))):
         cyls = []
         for k in range(6):
             cyls.append(dict(
@@ -661,14 +732,14 @@ def build():
         web = hull2d([rot_xz(x, z, a) for x, z in web])
         mb.prism_xz(web, g["main_y"][k] + mw / 2, yp - P["pin_length"] / 2)
         mb.prism_xz(web, yp + P["pin_length"] / 2, g["main_y"][k + 1] - mw / 2)
-    snout_front = -88.0
+    snout_front = P["head_front"] - 37.0
     mb.cyl_y(22.0, snout_front + 20, g["main_y"][0] - mw / 2 + 0.5, seg=32)
     for b in g["banks"]:                                       # crank sprockets
         rc = sprocket_radius(P["crank_sprocket_teeth"])
         mb.prism_xz(list(reversed(gear_profile(0, 0, P["crank_sprocket_teeth"], rc))),
                     b["chain_y"] - 6, b["chain_y"] + 6, mi=1)
-    mb.lathe([(30, -50), (30, -20)], 32, ROT_Z_TO_Y)          # damper hub
-    mb.ring_y(30, 84, snout_front, -55, seg=48, mi=1)          # damper ring
+    mb.lathe([(30, snout_front + 20), (30, -20)], 32, ROT_Z_TO_Y)   # damper hub
+    mb.ring_y(30, P["crank_pulley_r"], snout_front, snout_front + 30, seg=48, mi=1)   # crank pulley
     mb.cyl_y(55, g["main_y"][-1] + mw / 2 - 0.5, g["length"] + 6, seg=48)   # rear flange
     crank = mb.finish("F140HC_Crankshaft", c_rot, [M["steel"], M["dlc"]], parent=root)
     drive(crank, "rotation_euler", 1, f"radians{CRANK}", ctrl)
@@ -831,6 +902,8 @@ def build():
     # ---------------- housings ----------------
     hw, bw, hh = P["head_half_width"], P["barrel_half_width"], P["head_height"]
     L = g["length"]
+    hf, hr = P["head_front"], L + P["head_rear_ext"]          # head / cover y extent
+    hc, hl = (hf + hr) / 2, hr - hf
     # block: crankcase + two barrel banks, minus bores, crank cavity, main line
     mb = MB()
     cb, ct = P["crankcase_bottom"], P["crankcase_top"]
@@ -854,11 +927,11 @@ def build():
     for b, be in zip(g["banks"], bank_obj):
         inb = b["inb"]
         mb = MB()
-        mb.box(0, L / 2, deck + hh / 2, 2 * hw, L, hh)
+        mb.box(0, hc, deck + hh / 2, 2 * hw, hl, hh)
         head = mb.finish(f"F140HC_Head_{b['label']}", c_house, [M["alu_cast"]], parent=be)
         cut = MB()
-        cut.box(0, L / 2, deck + P["gallery_floor"] + (hh - P["gallery_floor"]) / 2 + 1,
-                2 * (hw - 6), L - 16, hh - P["gallery_floor"] + 2)
+        cut.box(0, hc, deck + P["gallery_floor"] + (hh - P["gallery_floor"]) / 2 + 1,
+                2 * (hw - 6), hl - 16, hh - P["gallery_floor"] + 2)
         vi, ve = g["valves"]["intake"], g["valves"]["exhaust"]
         for c in b["cyls"]:
             cut.cyl(R, deck - 1.0, deck + 9.0, M=T(0, c["y"], 0), seg=48)          # chamber
@@ -884,28 +957,52 @@ def build():
             side = inb if kind == "intake" else -inb
             cut.cyl_y(17.3, -10.0, L + 10.0, cx=side * v["cam_x"], cz=v["cam_z"], seg=32)
         bake_boolean(towers, cut.finish("F140HC_cut_towers", c_tmp, [], parent=be))
-        # cam cover: flange + crowned body, hollow
+        # cam cover (measured from Amalgam photos 09, 11, 13, 20): flat top, chamfered
+        # outboard edge, plan-view rounded ends, hollow
+        o = -inb                                        # outboard direction in bank-local x
+        z0 = deck + hh
+        prof = [(-82, 0), (82, 0), (82, 7), (77, 10), (73, 27), (61, 42), (-46, 42), (-62, 38),
+                (-71, 11), (-82, 7)]
+        Hc = P["cover_height"]
+        kx = hw / 82.0
+        prof = [(o * x * kx, z * Hc / 42.0) for x, z in prof]
+        Rend = 34.0
+
+        def ring_at(y, d):
+            k = (hw - Rend + sqrt(max(0.0, Rend ** 2 - (Rend - d) ** 2))) / hw
+            return [(x * k, y, z0 + z) for x, z in prof]
+        sections = []
+        for i in range(9):                                # rounded front end
+            d = Rend * (1 - cos((pi / 2) * i / 8))
+            sections.append(ring_at(hf + d, d))
+        for i in range(8, -1, -1):                        # rounded rear end
+            d = Rend * (1 - cos((pi / 2) * i / 8))
+            sections.append(ring_at(hr - d, d))
         mb = MB()
-        mb.box(0, L / 2, deck + hh + 3.0, 2 * hw, L, 6.0)
-        mb.box(0, L / 2, deck + hh + 6.0 + (P["cover_height"] - 6.0) / 2, 2 * (hw - 12), L - 12,
-               P["cover_height"] - 6.0)
-        cover = mb.finish(f"F140HC_CamCover_{b['label']}", c_house, [M["rosso"]], parent=be)
+        mb.loft(sections)
+        for j in range(7):                                # bolt bosses on the outboard top edge
+            yb = b["cyls"][0]["y"] - P["bore_pitch"] / 2 + j * P["bore_pitch"]
+            mb.cyl(8.0, z0 + Hc - 4.0, z0 + Hc + 4.0, M=T(o * 52.0 * kx, yb, 0), seg=20)
+        cover = mb.finish(f"F140HC_CamCover_{b['label']}", c_house, [M["rosso"]], parent=be,
+                          smooth_angle=50.0)
         cut = MB()
-        cut.box(0, L / 2, deck + hh + (P["cover_height"] - 4.0) / 2 - 1, 2 * (hw - 16), L - 20,
-                P["cover_height"] - 2.0)
+        cut.box(0, hc, z0 + (Hc - 8.0) / 2, 2 * (hw - 12), hl - 24, Hc - 4.0)
         bake_boolean(cover, cut.finish("F140HC_cut_cover", c_tmp, [], parent=be))
         covers.append(cover)
-        # coils and plugs
+        # coil boots, oil filler cap, plugs
         mb = MB()
         pl = MB()
         for c in b["cyls"]:
-            ztop = deck + hh + P["cover_height"]
-            mb.box(0, c["y"], ztop + 18.0, 30.0, 26.0, 36.0)
-            mb.box(0, c["y"] + 18.0, ztop + 26.0, 14.0, 12.0, 12.0)
+            ztop = z0 + Hc
+            mb.rbox(o * 18.0, c["y"], ztop + 13.0, 46.0, 36.0, 26.0, 6.0)
+            mb.rbox(o * 18.0, c["y"] - 23.0, ztop + 20.0, 16.0, 14.0, 12.0, 3.0)
             mb.cyl(9.0, deck + 70.0, ztop, M=T(0, c["y"], 0), seg=20)
             pl.lathe([(0, deck + 8.0), (2.5, deck + 8.0), (7.0, deck + 12.0), (7.0, deck + 30.0),
                       (8.0, deck + 30.0), (8.0, deck + 40.0), (5.5, deck + 42.0), (5.5, deck + 72.0),
                       (0, deck + 72.0)], 6 * 4, T(0, c["y"], 0))
+        for dx in (-13.0, 13.0):                          # figure-8 oil filler cap
+            yf = min(c_["y"] for c_ in b["cyls"]) - 0.68 * P["bore_pitch"]   # photo 13: 0.68 pitch ahead
+            mb.cyl(14.0, z0 + Hc, z0 + Hc + 16.0, M=T(o * 8.0 + dx, yf, 0), seg=28)
         mb.finish(f"F140HC_Coils_{b['label']}", c_house, [M["black"]], parent=be)
         pl.finish(f"F140HC_SparkPlugs_{b['label']}", c_house, [M["ceramic"]], parent=be)
 
@@ -922,17 +1019,73 @@ def build():
         mb.ribbon_xz(path, 3.5, b["chain_y"] - 5.0, b["chain_y"] + 5.0)
         mb.finish(f"F140HC_TimingChain_{b['label']}", c_rot, [M["chain"]], parent=root)
         cover_pts += [p for (cx, cz), rr in centres for p in circle_pts(cx, cz, rr + 16, 48)]
-    tc_outline = hull2d(cover_pts)
+    # front casting: V-shield from the heads down to the dry sump (front photo 11)
+    def bank_pt(bi, xl, zl):
+        return rot_xz(xl, zl, g["banks"][bi]["gamma"])
+    sump_bot = cb - P["sump_depth"]
+    tc_outline = [bank_pt(0, -hw, deck + hh), bank_pt(0, hw, deck + hh), (0.0, P["front_valley_z"]),
+                  bank_pt(1, -hw, deck + hh), bank_pt(1, hw, deck + hh), bank_pt(1, hw, deck),
+                  (215.0, 60.0), (165.0, -70.0), (125.0, sump_bot), (-125.0, sump_bot), (-165.0, -70.0),
+                  (-215.0, 60.0), bank_pt(0, -hw, deck)]
+    tc_c = (0.0, 110.0)
+
+    def shrink(poly, k):
+        return [(tc_c[0] + (x - tc_c[0]) * k, tc_c[1] + (z - tc_c[1]) * k) for x, z in poly]
     mb = MB()
-    mb.prism_xz(tc_outline, -45.0, 0.0)
+    mb.prism_xz(tc_outline, hf, 0.0)
     tcover = mb.finish("F140HC_TimingCover", c_house, [M["alu_cast"]], parent=root)
     cut = MB()
-    cut.prism_xz(hull2d(cover_pts + [(x * 0.94, z * 0.94) for x, z in cover_pts]), -41.0, 1.0)
-    inner = [(x * 0.93, z * 0.93 + 4) for x, z in tc_outline]
-    cut.bm.clear()
-    cut.prism_xz(inner, -41.0, 1.0)
-    cut.cyl_y(26.0, -60.0, 5.0, seg=32)
+    cut.prism_xz(shrink(tc_outline, 0.92), hf + 5.0, 1.0)
+    cut.cyl_y(33.0, hf - 15.0, 5.0, seg=32)
     bake_boolean(tcover, cut.finish("F140HC_cut_tc", c_tmp, [], parent=root))
+
+    # ---------------- front accessory drive (front photo 11, positions vs crank centre) ----
+    yp = hf - 25.0                                       # belt plane
+    acc = {}
+    for name, (ax, az, pr_, body_r, body_len) in P["accessories"].items():
+        mb = MB()
+        if body_r:
+            mb.cyl_y(body_r, hf + 2.0, hf + 2.0 + body_len, cx=ax, cz=az, seg=48)
+            mb.cyl_y(body_r * 0.55, yp + 8.0, hf + 2.0, cx=ax, cz=az, seg=32, mi=1)
+            if name == "alternator":                     # cooling fins on the nose
+                for i in range(18):
+                    a = 2 * pi * i / 18
+                    mb.box(ax + (body_r - 6) * cos(a), hf + 14.0, az + (body_r - 6) * sin(a),
+                           4.0, 22.0, 12.0, M=None, mi=1)
+        body = mb.finish(f"F140HC_{name}_body", c_house,
+                         [M["alu_cast"], M["alu_mach"]], parent=root) if body_r else None
+        mb = MB()                                        # pulley, rotates with the belt
+        mb.ring_y(pr_ * 0.35, pr_, yp - 13.0, yp + 13.0, seg=48)
+        mb.ring_y(pr_ * 0.35, pr_ + 3.0, yp - 14.0, yp - 11.0, seg=48)
+        mb.ring_y(pr_ * 0.35, pr_ + 3.0, yp + 11.0, yp + 14.0, seg=48)
+        mb.cyl_y(pr_ * 0.38, yp - 16.0, yp + 2.0, seg=24, mi=1)
+        for i in range(5):                               # spokes so rotation reads
+            a = 2 * pi * i / 5
+            mb.box(0.62 * pr_ * cos(a), yp - 10.0, 0.62 * pr_ * sin(a), 0.3 * pr_, 4.0, 6.0,
+                   M=Matrix.Rotation(-a, 4, 'Y'), mi=1)
+        pul = mb.finish(f"F140HC_{name}_pulley", c_rot, [M["alu_mach"], M["steel"]], parent=root)
+        pul.location = (ax * MM, 0, az * MM)
+        ratio = P["crank_pulley_r"] / pr_
+        drive(pul, "rotation_euler", 1, f"radians{CRANK}*{ratio:.5f}", ctrl)
+        acc[name] = (ax, az, pr_)
+    # crank pulley sits on the crank snout (part of the crankshaft mesh); belt around all
+    belt_pts = [p for (ax, az, pr_) in acc.values() for p in circle_pts(ax, az, pr_ + 2, 64)]
+    belt_pts += circle_pts(0.0, 0.0, P["crank_pulley_r"] + 2, 64)
+    mb = MB()
+    mb.ribbon_xz(hull2d(belt_pts), 2.5, yp - 10.0, yp + 10.0)
+    mb.finish("F140HC_AccessoryBelt", c_rot, [M["black"]], parent=root)
+    # coolant Y-manifold in the V and thermostat housing
+    mb = MB()
+    yc = hf - 12.0
+    hub = (0.0, P["front_valley_z"] - 75.0)
+    for sx in (-1, 1):
+        bi_ = 0 if sx < 0 else 1
+        arm_end = bank_pt(bi_, g["banks"][bi_]["inb"] * (hw - 20.0), deck + 40.0)   # head inner face
+        mb.between((hub[0], yc, hub[1]), (arm_end[0], yc, arm_end[1]), 19.0)
+    mb.lathe([(26, -30), (26, 30)], 32, T(hub[0], yc, hub[1]) @ ROT_Z_TO_Y)
+    mb.between((hub[0], yc, hub[1]), (60.0, yc - 30.0, hub[1] - 85.0), 17.0)
+    mb.lathe([(22, 0), (22, 40)], 32, T(60.0, yc - 30.0, hub[1] - 85.0) @ RX(90))
+    mb.finish("F140HC_CoolantManifold", c_house, [M["alu_cast"]], parent=root)
 
     # dry-sump pan and scavenge pump stack
     mb = MB()
@@ -944,27 +1097,116 @@ def build():
         mb.cyl_y(36.0, y, y + 8.0, cx=-(cw + 18), cz=-70.0, seg=32)
     mb.finish("F140HC_ScavengePumps", c_house, [M["alu_mach"]], parent=root)
 
-    # ---------------- intake ----------------
+    # ---------------- intake (SP3: two carbon pods over the V, throttle bodies at the rear) ----
+    zb = P["pod_base_z"]
+    # cast runners from each inboard port up to the pod flange
     mb = MB()
     for b in g["banks"]:
         inb = b["inb"]
         for c in b["cyls"]:
             px, pz = rot_xz(inb * hw, deck + 70.0, b["gamma"])
-            Lr = 150.0
-            mb.lathe([(21, 0), (24, 0), (24, Lr - 25), (30, Lr - 8), (40, Lr), (37, Lr),
-                      (27, Lr - 8), (21, Lr - 25)], 32, T(px, c["y"], pz) @ RY(inb * 10.0), closed=True)
-    mb.finish("F140HC_IntakeRunners", c_ind, [M["carbon"]], parent=root)
+            Lr = (zb - 16.0 - pz) / cos(radians(10.0)) + 4.0
+            mb.lathe([(21, 0), (25, 0), (25, Lr), (21, Lr)], 32, T(px, c["y"], pz) @ RY(inb * 10.0),
+                     closed=True)
+    mb.finish("F140HC_IntakeRunners", c_ind, [M["alu_cast"]], parent=root)
+
+    def interp(table, u):
+        """Monotone cubic (PCHIP) through the measured samples: smooth, no overshoot."""
+        u = min(max(u, 0.0), 1.0)
+        xs = [a for a, _ in table]
+        ys = [b_ for _, b_ in table]
+        n = len(xs)
+        h = [xs[i + 1] - xs[i] for i in range(n - 1)]
+        dl = [(ys[i + 1] - ys[i]) / h[i] for i in range(n - 1)]
+        m = [dl[0]] + [0.0] * (n - 2) + [dl[-1]]
+        for i in range(1, n - 1):
+            if dl[i - 1] * dl[i] > 0:
+                w1, w2 = 2 * h[i] + h[i - 1], h[i] + 2 * h[i - 1]
+                m[i] = (w1 + w2) / (w1 / dl[i - 1] + w2 / dl[i])
+        i = next((k for k in range(n - 1) if u <= xs[k + 1]), n - 2)
+        t = (u - xs[i]) / h[i]
+        h00, h10 = 2 * t ** 3 - 3 * t ** 2 + 1, t ** 3 - 2 * t ** 2 + t
+        h01, h11 = -2 * t ** 3 + 3 * t ** 2, t ** 3 - t ** 2
+        return h00 * ys[i] + h10 * h[i] * m[i] + h01 * ys[i + 1] + h11 * h[i] * m[i + 1]
+
+    y_rear = L + P["head_rear_ext"]                     # pod rear = cam cover rear (side photo)
+    y_tip = y_rear - P["pod_length_frac"] * (P["head_rear_ext"] - P["head_front"] + L)
+    xi = P["pod_inner_x"]
+    NSEC, NT = 72, 40                                    # sections along, points across the top
+    pods = []
+    pod_bolts = []
+    for sx in (-1, 1):
+        secs = []
+        for i in range(NSEC + 1):
+            u = i / NSEC
+            y = y_rear - u * (y_rear - y_tip)
+            xo = interp(P["pod_outer"], u)
+            h = interp(P["pod_height"], u)
+            x0, x1 = xi, xo
+            # blunt rounded nose: shrink the section about its centre over the last stretch
+            un = P["pod_nose_start"]
+            if u > un:
+                s_ = sqrt(max(0.0, 1.0 - ((u - un) / (1.0 - un)) ** 2))
+                s_ = max(s_, 0.04)
+                xm = (x0 + x1) / 2
+                x0, x1 = xm - (xm - x0) * s_, xm + (x1 - xm) * s_
+                h *= max(s_, 0.25) ** 0.6
+            # scoop on the inner-rear quarter (photo 09 / 20)
+            scoop = P["pod_scoop"] * max(0.0, 1.0 - u / 0.42)
+            pts = []
+            for k in range(NT + 1):                     # top: inner edge -> outer edge
+                t = 0.5 - 0.5 * cos(pi * k / NT)        # denser near the edges
+                tc = (t - P["pod_crest"]) / (1.0 - P["pod_crest"]) if t > P["pod_crest"] else \
+                    (P["pod_crest"] - t) / P["pod_crest"]
+                dome = max(0.0, 1.0 - tc ** 2.6) ** (1 / 2.2)
+                dip = scoop * math.exp(-((t - 0.32) / 0.2) ** 2)
+                pts.append((x0 + (x1 - x0) * t, zb + h * dome * (1.0 - dip)))
+            pts[0] = (x0, zb + 6.0)
+            pts[-1] = (x1, zb + 6.0)
+            ring = [(sx * x, y, z) for x, z in pts]
+            for k in range(1, 6):                        # flat underside, outer -> inner
+                t = 1.0 - k / 6
+                ring.append((sx * (x0 + (x1 - x0) * t), y, zb))
+            if sx < 0:
+                ring.reverse()
+            secs.append(ring)
+        mb = MB()
+        mb.loft(secs)
+        pod = mb.finish(f"F140HC_IntakePod_{'L' if sx < 0 else 'R'}", c_ind, [M["carbon"]], parent=root,
+                        smooth_angle=70.0)
+        pods.append(pod)
+        # grey cast manifold body between the pod flange and the cam covers
+        foot = []
+        for i in range(0, int(NSEC * P["pod_nose_start"]) + 1, 3):
+            u = i / NSEC
+            foot.append((sx * (interp(P["pod_outer"], u) - 14.0), y_rear - u * (y_rear - y_tip)))
+        foot.append((sx * (xi - 4.0), y_rear - P["pod_nose_start"] * (y_rear - y_tip)))
+        foot.append((sx * (xi - 4.0), y_rear))
+        if sx > 0:
+            foot.reverse()
+        mb = MB()
+        mb.prism_xy(foot, zb - 30.0, zb)
+        mb.finish(f"F140HC_IntakeManifold_{'L' if sx < 0 else 'R'}", c_ind, [M["alu_cast"]], parent=root)
+        # pod flange bolts: inner edge along the spine, outer lower edge
+        for j in range(6):
+            u = 0.12 + j * 0.14
+            yb = y_rear - u * (y_rear - y_tip)
+            pod_bolts.append((sx * (xi + 9.0), yb, zb + 4.0))
+            pod_bolts.append((sx * (interp(P["pod_outer"], u) - 6.0), yb, zb + 4.0))
+        # throttle body: bore, flange, motor housing
+        tbx, tbz, tr = sx * P["tb_offset_x"], zb + P["tb_height"], P["tb_radius"]
+        mb = MB()
+        mb.ring_y(tr - 6, tr + 8, y_rear, y_rear + 14, cx=tbx, cz=tbz, seg=48)
+        mb.ring_y(tr - 6, tr + 2, y_rear + 14, y_rear + 78, cx=tbx, cz=tbz, seg=48)
+        mb.ring_y(tr - 6, tr + 6, y_rear + 78, y_rear + 92, cx=tbx, cz=tbz, seg=48)
+        mb.cyl_y(4.0, y_rear + 40, y_rear + 52, cx=tbx, cz=tbz, seg=12)      # throttle shaft boss
+        mb.box(tbx + sx * (tr + 18), y_rear + 46, tbz - 10, 34, 54, 62, mi=1)  # actuator
+        mb.finish(f"F140HC_ThrottleBody_{'L' if sx < 0 else 'R'}", c_ind, [M["alu_mach"], M["black"]],
+                  parent=root)
+    # central aluminium spine between the pods
     mb = MB()
-    mb.box(0, 330, 470, 250, 600, 100)
-    plen = mb.finish("F140HC_Plenum", c_ind, [M["carbon"]], parent=root)
-    cut = MB()
-    cut.box(0, 330, 468, 238, 588, 92)
-    bake_boolean(plen, cut.finish("F140HC_cut_plen", c_tmp, [], parent=root))
-    mb = MB()
-    for sx in (-1, 1):                                  # SP3: air enters from the rear
-        mb.lathe([(40, 0), (44, 0), (44, 130), (40, 130)], 40,
-                 T(sx * 70, 630, 470) @ ROT_Z_TO_Y, closed=True)
-    mb.finish("F140HC_AirboxInlets", c_ind, [M["carbon"]], parent=root)
+    mb.box(0, (y_tip - 25 + y_rear) / 2, zb + 8, 2 * xi + 6, y_rear - y_tip + 25, 32)
+    mb.finish("F140HC_IntakeSpine", c_ind, [M["alu_mach"]], parent=root)
 
     # ---------------- exhaust ----------------
     for b in g["banks"]:
@@ -1063,17 +1305,22 @@ def build():
                     bolt(f"CamCap_{b['label']}", 8, 45.0, (side * v["cam_x"] + dx, y, v["cam_z"] + 24.0),
                          parent=be)
         ztop = deck + hh + 6.0
-        n = int((L - 30) // 52) + 1
-        for i in range(n):
-            y = 15.0 + i * (L - 30) / (n - 1)
+        for y in rows:
             for sx in (-1, 1):
-                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 6.0), y, ztop), parent=be)
-        for sx in (-1, 1):
-            bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * 40.0, 6.0, ztop), parent=be)
-            bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * 40.0, L - 6.0, ztop), parent=be)
-        for c in b["cyls"]:
-            bolt(f"Coil_{b['label']}", 6, 20.0, (0, c["y"] + 18.0, deck + hh + P["cover_height"] + 32.0),
+                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 5.0), y, ztop), parent=be)
+        for y in (hf + 14.0, hr - 14.0):
+            for sx in (-1, 1):
+                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 40.0), y, ztop), parent=be)
+        o = -b["inb"]
+        for y in rows:                                    # bolts in the top-edge bosses
+            bolt(f"CamCover_{b['label']}", 6, 20.0, (o * 52.0 * hw / 82.0, y, deck + hh + P["cover_height"] + 4.0),
                  parent=be)
+        for c in b["cyls"]:
+            bolt(f"Coil_{b['label']}", 6, 20.0, (-b["inb"] * 18.0, c["y"] + 12.0,
+                                                 deck + hh + P["cover_height"] + 26.0),
+                 parent=be)
+    for loc in pod_bolts:
+        bolt("IntakePod", 6, 20.0, loc)
     for y in g["main_y"]:
         for x in (-62.0, -40.0, 40.0, 62.0):
             bolt("MainCaps", 10, 110.0, (x, y, cb), rot=(pi, 0, 0))
@@ -1084,8 +1331,9 @@ def build():
     for i in range(14):
         a = 2 * pi * i / 14
         bolt("Bellhousing", 10, 60.0, None, M_=T(176 * cos(a), L + 6.0, 176 * sin(a)) @ ROT_Z_TO_Y)
-    for x, z in resample_closed(hull2d([(x * 0.96, z * 0.96) for x, z in tc_outline]), 60.0):
-        bolt("TimingCover", 6, 30.0, None, M_=T(x, -45.0, z) @ ROT_Z_TO_NY)
+    for x, z in resample_closed([(tc_c[0] + (x - tc_c[0]) * 0.95, tc_c[1] + (z - tc_c[1]) * 0.95)
+                                 for x, z in tc_outline], 60.0):
+        bolt("TimingCover", 6, 30.0, None, M_=T(x, hf, z) @ ROT_Z_TO_NY)
 
     # ---------------- cutaway ----------------
     cut = MB()
@@ -1104,7 +1352,7 @@ def build():
     for ob in pending_hide:
         for prop in ("hide_viewport", "hide_render"):
             drive(ob, prop, None, "c > 0.5", ctrl, extra=[("c", "cutaway")])
-    for ob in [block, heads[1], covers[1], tcover, sump, plen,
+    for ob in [block, heads[1], covers[1], tcover, sump,
                bpy.data.objects[f"F140HC_CamTowers_{g['banks'][1]['label']}"]]:
         mod = ob.modifiers.new("Cutaway", 'BOOLEAN')
         mod.operation = 'DIFFERENCE'

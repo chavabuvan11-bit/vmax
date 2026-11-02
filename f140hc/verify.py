@@ -151,17 +151,34 @@ def main():
             if name in bpy.data.objects:
                 bpy.data.objects[name].hide_render = True
         cam = bpy.data.objects["F140HC_Camera"]
-        shots = [("cutaway_34", (1.55, -0.95, 1.25), 1, 1),
-                 ("cutaway_side", (1.9, 0.33, 0.55), 1, 31),
-                 ("closed_34", (-1.5, -1.0, 1.3), 0, 1),
-                 ("front_internals", (0.0, -1.7, 0.45), 1, 16)]
-        for name, loc, cut, frame in shots:
+        track = cam.constraints[0]
+        rz = scn.objects["F140HC_ROOT"].location.z
+        # name: (location, rotation or None for track-to, lens, cutaway, frame, resolution)
+        shots = {
+            "cutaway_34": ((1.55, -0.95, 1.25), None, 40, 1, 1, (1280, 720)),
+            "cutaway_side": ((1.9, 0.33, 0.55), None, 40, 1, 31, (1280, 720)),
+            "closed_34": ((-1.5, -1.0, 1.3), None, 40, 0, 1, (1280, 720)),
+            "front_internals": ((0.0, -1.7, 0.45), None, 40, 1, 16, (1280, 720)),
+            # matched to Amalgam photo 13 (side, -X) and photo 20 (top, front to the right)
+            "ref_side": ((-3.4, 0.30, rz + 0.30), (radians(90), 0, radians(-90)), 85, 0, 1, (1200, 800)),
+            "ref_top": ((0.0, 0.66, 5.2), (0, 0, radians(-90)), 70, 0, 1, (1200, 800)),
+            "ref_front": ((0.0, -4.2, rz + 0.11), (radians(90), 0, 0), 100, 0, 1, (1200, 800)),
+        }
+        want = argv[argv.index("--shots") + 1].split(",") if "--shots" in argv else list(shots)
+        for name in want:
+            loc, rot, lens, cut, frame, res = shots[name]
             setp(ctrl, cutaway=cut)
+            scn.render.resolution_x, scn.render.resolution_y = res
             cam.location = loc
+            cam.data.lens = lens
+            track.mute = rot is not None
+            if rot is not None:
+                cam.rotation_euler = rot
             scn.frame_set(frame)
             scn.render.filepath = os.path.join(out, name + ".png")
             bpy.ops.render.render(write_still=True)
             print("rendered", scn.render.filepath)
+        track.mute = False
         setp(ctrl, cutaway=1)
 
     if fails:
