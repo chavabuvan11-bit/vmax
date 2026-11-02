@@ -1248,8 +1248,10 @@ def build():
         pl = MB()
         for c in b["cyls"]:
             ztop = z0 + Hc
-            mb.rbox(o * 18.0, c["y"], ztop + 13.0, 46.0, 36.0, 26.0, 6.0)
-            mb.rbox(o * 18.0, c["y"] - 23.0, ztop + 20.0, 16.0, 14.0, 12.0, 3.0)
+            # coil boot (photos 13 / 20): rounded block ~56 x 44 x 32, long axis across the bank, with the
+            # connector at the outboard-rear corner
+            mb.rbox(o * 22.0, c["y"], ztop + 16.0, 56.0, 44.0, 32.0, 9.0, 3)
+            mb.rbox(o * 44.0, c["y"] + 22.0, ztop + 13.0, 20.0, 16.0, 14.0, 3.0)
             mb.cyl(9.0, deck + 70.0, ztop, M=T(0, c["y"], 0), seg=20)
             pl.lathe([(0, deck + 8.0), (2.5, deck + 8.0), (7.0, deck + 12.0), (7.0, deck + 30.0),
                       (8.0, deck + 30.0), (8.0, deck + 40.0), (5.5, deck + 42.0), (5.5, deck + 72.0),
@@ -1628,8 +1630,18 @@ def build():
         if sx > 0:
             foot.reverse()
         mb = MB()
-        mb.prism_xy(foot, zb - 30.0, zb)
+        mb.prism_xy(foot, zb - 30.0, zb - 8.0)                 # cast runner base
         mb.finish(f"F140HC_IntakeManifold_{'L' if sx < 0 else 'R'}", c_ind, [M["block_cast"]], parent=root)
+        mb = MB()
+        mb.prism_xy(foot, zb - 8.0, zb)                        # dark flange lip under the shell
+        for j in range(5):                                     # cast bosses between the coils (photo 13)
+            u = 0.17 + j * 0.15
+            yb_ = y_rear - u * (y_rear - y_tip)
+            xo_ = interp(P["pod_outer"], u)
+            xe = xo_ - P["pod_undercut"] * (xo_ - xi) + 12.0
+            mb.lathe([(0, 0), (10, 0), (10, 7), (8, 9), (0, 9)], 24,
+                     T(sx * xe, yb_, zb - 20.0) @ RY(90 if sx > 0 else -90), mi=1)
+        mb.finish(f"F140HC_IntakeFlangeLip_{'L' if sx < 0 else 'R'}", c_ind, [M["dlc"], M["block_cast"]], parent=root)
         # pod flange bolts: inner edge along the spine, outer lower edge
         for j in range(6):
             u = 0.12 + j * 0.14
@@ -2000,7 +2012,7 @@ def build():
                  parent=be)
         for c in b["cyls"]:
             bolt(f"Coil_{b['label']}", 6, 20.0, (-b["inb"] * 18.0, c["y"] + 12.0,
-                                                 deck + hh + P["cover_height"] + 26.0),
+                                                 deck + hh + P["cover_height"] + 32.0),   # on the boot top
                  parent=be)
     for loc in pod_bolts:
         bolt("IntakePod", 6, 20.0, loc)
