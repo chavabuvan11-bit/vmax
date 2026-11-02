@@ -210,6 +210,13 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
   Tube widths were confirmed by ray-casting.
 - **Still not right (priority order):**
   1. **Far-bank headers** are mirrored from the near bank, but photo 16 shows a different route.
+     The best far-bank sources:
+     - photo 04: a clean +X side view, cropped at the front
+     - photo 08: a close elevated front-3/4, the clearest
+     - photo 16
+     - video orbit frames 54–60 s: +X side views
+     Photo 08 suggests the topology matches the near bank (front tube drops into a bellows,
+     rear arches merge, rear bellows tube); the routing details differ.
      Trace photo 16 the same way: solve its camera with low features, back-project at depth, then
      run the depth solver with the far bank's own traces.
   2. **Head exhaust face** between the cover lip and the tubes reads darker than the photo,
@@ -293,6 +300,18 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 - Commit messages end with the attribution lines given in the session's system reminder.
 
 ## 10. Recent changes (newest first)
+
+- **Intake pods rebuilt.**
+  - Side profile traced in photo 13 through the solved camera: flange z 374, crest about 186 mm
+    above it, nose at y −30.
+  - Cross-section: a flat plenum lid at 100 mm, plus a horn duct whose crest moves from 0.80 to
+    0.50 across the pod. The outer side has a shoulder, a bulge at 40% of the height, and an
+    undercut back to the flange.
+  - Lid bolts, chrome "Ferrari" script (outboard-up, as in photo 20), and flange bolts on a cast
+    ledge. Spine half-width 9 mm.
+  - Glossy-coat carbon.
+  - `reference_data/cameras/photo20_top_approx_camera.json` is an approximate top camera built
+    from the photo 20 cover-ruler mapping (not a solve), used for top-view checks.
 
 - **Joint solve fixed at k_v = 1.** With k_v free, the saved cameras only fit a model squashed
   6.6% vertically, so photo 16's coils rendered 50–70 px off. With k_v = 1 every `ba_*` camera

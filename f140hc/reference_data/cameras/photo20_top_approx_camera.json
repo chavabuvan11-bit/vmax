@@ -1,0 +1,26 @@
+{
+ "lens": 100.0,
+ "loc": [
+  -0.0013,
+  0.7360789999999999,
+  7.054999999999999
+ ],
+ "rot": [
+  [
+   0,
+   1,
+   0
+  ],
+  [
+   -1,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   1
+  ]
+ ],
+ "note": "approximate top-down camera reproducing photo 20's cover-ruler mapping (not a solve)"
+}

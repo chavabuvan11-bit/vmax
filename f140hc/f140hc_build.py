@@ -268,7 +268,7 @@ P = {
     # at v ~372 (z 374); rounded nose ends at y ~-30 (photo 20's cover-ruler mapping says -56;
     # the side view is the better-calibrated one). Plan widths: top photo 20, rescaled to this length.
     "pod_base_z": 374.0,           # pod flange height above crank axis
-    "pod_inner_x": 16.0,           # pod inner edge from engine centreline (spine half-width)
+    "pod_inner_x": 9.0,            # pod inner edge from engine centreline (top photo 20: ~15 mm spine)
     "pod_length_frac": 0.916,      # pod length / cam cover length (rear ends flush)
     "pod_outer": [(0.0, 245.0), (0.233, 247.0), (0.36, 240.0), (0.477, 224.0), (0.593, 208.0),
                   (0.71, 183.0), (0.837, 147.0), (0.953, 110.0), (1.0, 95.0)],
@@ -277,8 +277,12 @@ P = {
                    (0.896, 97.0), (1.0, 70.0)],
     "pod_nose_start": 0.92,        # where the blunt nose begins to round off
     "pod_crest": 0.62,             # crest position across the pod, inner 0 .. outer 1
-    "pod_scoop": 0.38,             # inner-rear scoop depth (fraction of height)
     "pod_bulge_z": 0.40,           # widest point of the shell, fraction of its height (photo 13)
+    "pod_crest_rear": 0.80,        # horn crest across the pod (inner 0 .. outer 1) at the rear ...
+    "pod_crest_tip": 0.50,         # ... and at the nose: the horn curves inboard (top photo 20)
+    "pod_horn_inner": 0.32,        # horn inner flank width, fraction of the plan width
+    "pod_lid_h": 100.0,            # flat plenum lid height above the flange (rises into the nose)
+    "pod_script_y": 290.0, "pod_script_size": 34.0,   # chrome script on each lid (top photo 20)
     "pod_undercut": 0.20,          # flange inset under the bulge, fraction of the plan width
     "tb_radius": 52.0,             # throttle body (side photo: ~104 mm across)
     "tb_offset_x": 210.0,          # top photo: 0.77 of cover half-width
@@ -1540,28 +1544,34 @@ def build():
                 xm = (x0 + x1) / 2
                 x0, x1 = xm - (xm - x0) * s_, xm + (x1 - xm) * s_
                 h *= max(s_, 0.25) ** 0.6
-            # scoop on the inner-rear quarter (photo 09 / 20)
-            scoop = P["pod_scoop"] * max(0.0, 1.0 - u / 0.42)
-            # cross-section (photo 13: rounded glossy side, dark undercut above the bolted flange):
-            # inner wall -> elliptical shoulder -> crest -> outer bulge at 40 % height -> undercut
-            # curving back in to a flange 20 % narrower than the bulge -> flat underside
+            # cross-section = lower plenum lid (inboard, with the script and bolts) + the raised horn duct
+            # whose crest runs from the throttle body at the rear-outer corner to the nose (top photo 20;
+            # side photo 13 sees the horn crest as the silhouette top). Outer side: shoulder -> bulge at
+            # 40 % height -> undercut back in to the bolted flange (photo 13).
             W_ = x1 - x0
-            xc = x0 + P["pod_crest"] * W_
+            tcr = P["pod_crest_rear"] + (P["pod_crest_tip"] - P["pod_crest_rear"]) * u
+            xc = x0 + tcr * W_
             hb = P["pod_bulge_z"] * h
             wu = P["pod_undercut"] * W_
+            # flat plenum lid at a constant height, blending into the horn over the nose
+            rmp = max(0.0, (u - 0.70) / 0.30) ** 1.5
+            hl = min(P["pod_lid_h"], 0.92 * h) * (1.0 - rmp) + h * rmp
+            x_hi = max(x0 + 14.0, xc - P["pod_horn_inner"] * W_)
             pts = [(x0, zb + 2.0)]
-            for k in range(1, 9):                        # inner shoulder up to the crest
-                a_ = pi - (pi / 2) * k / 8
-                pts.append((xc + (xc - x0) * cos(a_), zb + 0.25 * h + 0.75 * h * sin(a_)))
+            for k in range(1, 4):                        # rounded spine edge up to the lid
+                a_ = pi - (pi / 2) * k / 3
+                pts.append((x0 + 12.0 + 12.0 * cos(a_), zb + hl - 12.0 + 12.0 * sin(a_)))
+            for k in range(1, 3):                        # flat lid
+                pts.append((x0 + 12.0 + (x_hi - x0 - 12.0) * k / 3, zb + hl))
+            for k in range(0, 4):                        # horn inner flank up to the crest
+                a_ = pi - (pi / 2) * k / 3
+                pts.append((xc + (xc - x_hi) * cos(a_), zb + hl + (h - hl) * sin(a_)))
             for k in range(1, 15):                       # outer shoulder down to the bulge
                 a_ = pi / 2 - (pi / 2) * k / 14
                 pts.append((xc + (x1 - xc) * cos(a_), zb + hb + (h - hb) * sin(a_)))
             for k in range(1, 9):                        # undercut back in to the flange
                 a_ = -(pi / 2) * k / 8
                 pts.append((x1 - wu + wu * cos(a_), zb + hb + hb * sin(a_)))
-            # inner-rear scoop: depress the top near 32 % across
-            pts = [(x_, z_ - scoop * h * math.exp(-(((x_ - x0) / max(W_, 1.0) - 0.32) / 0.2) ** 2)
-                    * max(0.0, (z_ - zb) / h)) for x_, z_ in pts]
             ring = [(sx * x, y, z) for x, z in pts]
             for k in range(1, 6):                        # flat underside, outer flange -> inner
                 t = 1.0 - k / 6
@@ -1574,6 +1584,39 @@ def build():
         pod = mb.finish(f"F140HC_IntakePod_{'L' if sx < 0 else 'R'}", c_ind, [M["carbon"]], parent=root,
                         smooth_angle=70.0)
         pods.append(pod)
+        # lid furniture (top photo 20): bolts along the spine edge and along the horn's inner flank, and
+        # the chrome script, upright toward the outboard side, mid-lid
+        def lid_at(u):
+            h_ = interp(P["pod_height"], u)
+            W_ = interp(P["pod_outer"], u) - xi
+            xc_ = xi + (P["pod_crest_rear"] + (P["pod_crest_tip"] - P["pod_crest_rear"]) * u) * W_
+            rmp = max(0.0, (u - 0.70) / 0.30) ** 1.5
+            return zb + min(P["pod_lid_h"], 0.92 * h_) * (1.0 - rmp) + h_ * rmp, \
+                max(xi + 14.0, xc_ - P["pod_horn_inner"] * W_)
+        for j in range(6):
+            u = 0.10 + j * 0.115
+            yb = y_rear - u * (y_rear - y_tip)
+            zl, xh = lid_at(u)
+            pod_bolts.append((sx * (xi + 16.0), yb, zl))
+            pod_bolts.append((sx * (xh - 10.0), yb, zl))
+        ys_ = P["pod_script_y"]
+        zl, xh = lid_at((y_rear - ys_) / (y_rear - y_tip))
+        tcu = bpy.data.curves.new(f"F140HC_PodScript_{'L' if sx < 0 else 'R'}", 'FONT')
+        tcu.body = "Ferrari"
+        tcu.size = P["pod_script_size"] * MM
+        tcu.extrude = 0.8 * MM
+        tcu.align_x = 'CENTER'
+        tcu.align_y = 'CENTER'
+        tcu.shear = 0.18
+        tcu.materials.append(M["polished"])
+        tob = bpy.data.objects.new(f"F140HC_PodScript_{'L' if sx < 0 else 'R'}", tcu)
+        c_ind.objects.link(tob)
+        tob.parent = root
+        Mt_ = Matrix.Identity(3)
+        Mt_.col[0] = Vector((0.0, -sx, 0.0))            # reading direction: front on the +X pod
+        Mt_.col[1] = Vector((sx, 0.0, 0.0))             # letters' up: outboard
+        Mt_.col[2] = Vector((0.0, 0.0, 1.0))
+        tob.matrix_basis = Matrix.Translation(Vector((sx * (xi + xh) / 2, ys_, zl + 0.8)) * MM) @ Mt_.to_4x4()
         # grey cast manifold body between the pod flange and the cam covers
         foot = []
         for i in range(0, int(NSEC * P["pod_nose_start"]) + 1, 3):
