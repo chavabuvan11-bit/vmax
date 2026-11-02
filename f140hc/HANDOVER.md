@@ -211,6 +211,7 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
   5. **Materials:** cast textures exist. The polished exhaust steel is roughness 0.19; with the
      photo_studio_01 HDRI it gives the soft satin highlights of the Amalgam photos. The video
      was shot on black, so compare under a dark HDRI as well.
+- **Front section** (started, needs its own pass):
   - `tools/fit_front.py` now rejects solutions with points behind the camera and requires the
     camera on the front side. It still lands at about 25 px of error, and the render comes out
     more elevated than photo 11. The cover-corner picks are too noisy to pin the elevation.
