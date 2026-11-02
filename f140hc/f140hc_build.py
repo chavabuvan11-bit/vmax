@@ -55,7 +55,7 @@ P = {
     "bank_angle": 65.0,
 
     # --- EST: bottom end -------------------------------------------------------------
-    "rod_length": 150.0,           # centre-to-centre
+    "rod_length": 140.0,           # centre-to-centre; front photo 11 cover height implies ~140
     "bore_pitch": 104.0,           # cylinder centre spacing inside one bank
     "bank_offset": 23.0,           # bank 7-12 sits this far rearward (side-by-side rods)
     "comp_height": 28.0,           # wrist-pin centre to crown edge
@@ -65,15 +65,16 @@ P = {
     "pin_length": 46.0,            # holds two rods side by side
     "main_diameter": 60.0,
     "main_width": 22.0,
-    "counterweight_radius": 88.0,
+    "counterweight_radius": 76.0,  # must clear the piston skirt at BDC (checked in verify.py)
+    "piston_skirt": 22.0,          # skirt below the wrist-pin centre
     "rod_width": 21.0,
     "wrist_pin_diameter": 20.0,
 
     # --- EST: valvetrain (4 valves/cyl, DOHC per bank, sliding finger followers) ------
     "intake_valve_d": 36.0,
     "exhaust_valve_d": 30.0,
-    "intake_valve_len": 106.0,
-    "exhaust_valve_len": 102.0,
+    "intake_valve_len": 100.0,
+    "exhaust_valve_len": 97.0,
     "intake_valve_angle": 12.0,    # lean from bore axis
     "exhaust_valve_angle": 13.0,
     "intake_valve_x": 18.0,        # face centre offset from bore axis, across the bank
@@ -97,10 +98,10 @@ P = {
 
     # --- EST: castings ----------------------------------------------------------------
     "barrel_half_width": 78.0,     # cylinder bank casting, half width
-    "head_half_width": 100.0,      # front photo 11: covers ~1.8x their width from the crank
-    "head_height": 138.0,          # deck face to cam-cover face (side photo 13 overlay)
+    "head_half_width": 105.0,      # front photo 11 trace: cover ~210 mm across
+    "head_height": 95.0,           # deck to cover joint; front photo 11 trace: joint ~305 mm from crank
     "gallery_floor": 62.0,         # above deck
-    "cover_height": 95.0,          # front photo 11 / side photo 13: covers are chunky
+    "cover_height": 70.0,          # front photo 11 trace: ~60 mm (+cam clearance)
     "crankcase_half_width": 150.0,
     "crankcase_bottom": -110.0,    # below crank axis
     "crankcase_top": 105.0,
@@ -109,7 +110,19 @@ P = {
     # pitches, overhanging the block at the front to enclose the cam drive
     # side photo 13, coil centres found by segmentation: cover = 7.5 coil pitches; front coil
     # sits 1.8 pitches behind the cover front, rear coil 0.7 pitches ahead of the cover rear
-    "front_valley_z": 270.0,       # top of the front casting between the banks
+    "front_valley_z": 280.0,
+    # exhaust layout (mm, root frame; side photo 13 with the coil pitch as ruler, top photo 20
+    # with the cam cover as ruler, rear photos 10 / 18). EST +-10%
+    "exhaust": {
+        "collector_x": 300.0, "collector_y": 322.0, "collector_z": -10.0,
+        "loop_x": 385.0,                               # outermost bulge of the primaries
+        "cat_profile": [(0, 95), (40, 108), (120, 110), (260, 104), (330, 75), (370, 42)],
+        "muffler_y": (1402.0, 1553.0), "muffler_x_span": (14.0, 340.0),
+        "muffler_x": 220.0, "muffler_z": 120.0, "muffler_h": 210.0,
+        "outlet_x": (120.0, 225.0),
+    },
+    # gearbox (7-speed DCT) envelope: top photo 20 / side photo 13
+    "gearbox": {"half_width": 175.0, "rear_y": 1340.0, "centre_z": 33.0, "height": 326.0},       # top of the front casting between the banks
     # front accessories: (x, z) of the pulley centre vs crank axis, pulley r, body r, body length
     # front photo 11, scaled with the cam cover as the ruler (EST +-10%)
     "crank_pulley_r": 57.0,
@@ -126,7 +139,7 @@ P = {
     # --- MEASURED: SP3 carbon intake. Plan widths from top photo 20 (as a fraction of the cam
     # cover half-width, x 273 mm); heights from side photo 13 (fraction of cover length above
     # the cover top). Extracted by colour segmentation, see tools/ in the README. --------------
-    "pod_base_z": 445.0,           # pod flange height above crank axis
+    "pod_base_z": 395.0,           # pod flange height above crank axis
     "pod_inner_x": 16.0,           # pod inner edge from engine centreline (spine half-width)
     "pod_length_frac": 0.97,       # pod length / cam cover length (rear ends flush)
     "pod_outer": [(0.0, 245.0), (0.22, 247.0), (0.34, 240.0), (0.45, 224.0), (0.56, 208.0),
@@ -748,7 +761,8 @@ def build():
     R = P["bore"] / 2
     ch = P["comp_height"]
     wp = P["wrist_pin_diameter"] / 2
-    piston_prof = [(0, -30), (R - 0.4, -30), (R - 0.4, ch - 16), (R - 3, ch - 16), (R - 3, ch - 13),
+    sk = -P["piston_skirt"]
+    piston_prof = [(0, sk), (R - 0.4, sk), (R - 0.4, ch - 16), (R - 3, ch - 16), (R - 3, ch - 13),
                    (R - 0.2, ch - 13), (R - 0.2, ch - 10.5), (R - 3, ch - 10.5), (R - 3, ch - 9),
                    (R - 0.2, ch - 9), (R - 0.2, ch - 6.5), (R - 3, ch - 6.5), (R - 3, ch - 5),
                    (R - 0.2, ch - 5), (R - 0.2, ch), (R - 8, ch + 0.4 * P["crown_dome"]),
@@ -916,7 +930,7 @@ def build():
     for b in g["banks"]:
         for c in b["cyls"]:
             cut.cyl(R, 40.0, deck + 5.0, M=RY(b["gamma"]) @ T(0, c["y"], 0), seg=48)
-    cav_r = P["counterweight_radius"] + 8.0
+    cav_r = max(P["counterweight_radius"] + 8.0, 95.0)
     for k in range(6):
         cut.cyl_y(cav_r, g["main_y"][k] + 9.0, g["main_y"][k + 1] - 9.0, seg=48)
     cut.cyl_y(mr + 0.6, -5.0, L + 5.0, seg=40)
@@ -1208,21 +1222,29 @@ def build():
     mb.box(0, (y_tip - 25 + y_rear) / 2, zb + 8, 2 * xi + 6, y_rear - y_tip + 25, 32)
     mb.finish("F140HC_IntakeSpine", c_ind, [M["alu_mach"]], parent=root)
 
-    # ---------------- exhaust ----------------
+    # ---------------- exhaust (measured: side photo 13, top photo 20, rear photos 10 / 18) ----
+    # per bank: six looping primaries -> collector -> large catalytic converter running rearward
+    # beside the block -> pipe along the gearbox -> transverse muffler box with square outlets
+    EX = P["exhaust"]
     for b in g["banks"]:
         inb = b["inb"]
-        sx = -inb
+        sx = -inb                                       # outboard side in world x
+        cx_, cy_, cz_ = sx * EX["collector_x"], EX["collector_y"], EX["collector_z"]
         for i, c in enumerate(b["cyls"]):
             p0 = Vector(rot_xz(-inb * hw, deck + 45.0, b["gamma"]))
-            d = Vector(rot_xz(-inb * cos(radians(20)), -sin(radians(20)), b["gamma"]))
-            pts = [(p0.x, c["y"], p0.y),
-                   (p0.x + d.x * 55, c["y"], p0.y + d.y * 55),
-                   (sx * 285, c["y"] + 30, 120.0),
-                   (sx * 292, c["y"] + 90, 10.0),
-                   (sx * (262 + (i % 2) * 18 - 9), 740.0, -10.0 + (i // 2 - 1) * 20)]
+            d = Vector(rot_xz(-inb * cos(radians(10)), sin(radians(10)), b["gamma"]))
+            yc = c["y"]
+            spread = (i - 2.5) * 9.0
+            pts = [(p0.x, yc, p0.y),
+                   (p0.x + d.x * 45, yc, p0.y + d.y * 45),
+                   (sx * (EX["loop_x"] - 25), yc + (cy_ - yc) * 0.12, p0.y + 45.0),
+                   (sx * EX["loop_x"], yc + (cy_ - yc) * 0.40, 125.0 + spread),
+                   (sx * (EX["loop_x"] - 20), yc + (cy_ - yc) * 0.75, 70.0 + spread * 0.5),
+                   (cx_ + sx * (spread * 0.6), cy_ - 30.0, cz_ + 55.0 + spread * 0.4),
+                   (cx_ + sx * (spread * 0.3), cy_, cz_ + 30.0)]
             cu = bpy.data.curves.new(f"F140HC_Primary_C{c['num']:02d}", 'CURVE')
             cu.dimensions = '3D'
-            cu.bevel_depth = 21 * MM
+            cu.bevel_depth = 19 * MM
             cu.bevel_resolution = 3
             sp = cu.splines.new('NURBS')
             sp.points.add(len(pts) - 1)
@@ -1230,21 +1252,57 @@ def build():
                 sp.points[j].co = (p[0] * MM, p[1] * MM, p[2] * MM, 1)
             sp.order_u = 4
             sp.use_endpoint_u = True
-            sp.resolution_u = 16
+            sp.resolution_u = 20
             cu.materials.append(M["inconel"])
             ob = bpy.data.objects.new(cu.name, cu)
             c_ind.objects.link(ob)
             ob.parent = root
-    mb = MB()
-    for sx in (-1, 1):
-        mb.lathe([(55, 0), (40, 120), (40, 560)], 40, T(sx * 262, 740, -10) @ ROT_Z_TO_Y)
-    mb.finish("F140HC_Collectors", c_ind, [M["inconel"]], parent=root)
+        # collector cone, V-band clamp, catalytic converter body (lathe along +Y)
+        mb = MB()
+        y0c = cy_ - 40.0
+        mb.lathe([(48, y0c), (62, y0c + 40), (64, y0c + 52)], 40, T(cx_, 0, cz_) @ ROT_Z_TO_Y)
+        mb.ring_y(60, 70, y0c + 40, y0c + 52, cx=cx_, cz=cz_, seg=40, mi=1)
+        prof = [(0, y0c + 52), (64, y0c + 52)] + [(r_, y0c + 52 + t) for t, r_ in EX["cat_profile"]] + \
+               [(0, y0c + 52 + EX["cat_profile"][-1][0])]
+        mb.lathe(prof, 48, T(cx_, 0, cz_) @ ROT_Z_TO_Y)
+        mb.finish(f"F140HC_Catalyst_{b['label']}", c_ind, [M["inconel"], M["steel"]], parent=root)
+        # pipe from the catalyst to the muffler
+        y_end = y0c + 52 + EX["cat_profile"][-1][0]
+        mx, my0, mz = sx * EX["muffler_x"], EX["muffler_y"][0], EX["muffler_z"]
+        pts = [(cx_, y_end - 10.0, cz_), (cx_, y_end + 140.0, cz_ - 35.0),
+               (sx * (EX["collector_x"] - 5), (y_end + my0) / 2, cz_ - 40.0),
+               (sx * (EX["collector_x"] - 25), my0 - 120.0, mz - 40.0), (mx, my0 + 10.0, mz - 20.0)]
+        cu = bpy.data.curves.new(f"F140HC_TailPipe_{b['label']}", 'CURVE')
+        cu.dimensions = '3D'
+        cu.bevel_depth = 38 * MM
+        cu.bevel_resolution = 4
+        sp = cu.splines.new('NURBS')
+        sp.points.add(len(pts) - 1)
+        for j, p in enumerate(pts):
+            sp.points[j].co = (p[0] * MM, p[1] * MM, p[2] * MM, 1)
+        sp.order_u = 4
+        sp.use_endpoint_u = True
+        sp.resolution_u = 24
+        cu.materials.append(M["inconel"])
+        ob = bpy.data.objects.new(cu.name, cu)
+        c_ind.objects.link(ob)
+        ob.parent = root
+        # transverse muffler box with two square outlets on top (rear photos 10 / 18)
+        mb = MB()
+        y_a, y_b = EX["muffler_y"]
+        x_in, x_out = EX["muffler_x_span"]
+        mb.rbox(sx * (x_in + x_out) / 2, (y_a + y_b) / 2, mz, x_out - x_in, y_b - y_a, EX["muffler_h"], 28.0, 4)
+        for k_, ox in enumerate(EX["outlet_x"]):
+            mb.rbox(sx * ox, y_b - 30.0, mz + EX["muffler_h"] / 2 + 40.0, 92.0, 46.0, 110.0, 6.0, 3,
+                    M=None, mi=1)
+        mb.finish(f"F140HC_Muffler_{b['label']}", c_ind, [M["alu_mach"], M["inconel"]], parent=root)
 
     # ---------------- gearbox placeholder ----------------
     mb = MB()
     mb.lathe([(150, L), (185, L + 40), (185, L + 120), (170, L + 130)], 48, ROT_Z_TO_Y)
-    end = P["envelope_length"] + snout_front
-    mb.box(0, (L + 125 + end) / 2, 0, 320, end - L - 125, 340)
+    GB = P["gearbox"]
+    end = GB["rear_y"]
+    mb.box(0, (L + 125 + end) / 2, GB["centre_z"], 2 * GB["half_width"], end - L - 125, GB["height"])
     mb.finish("F140HC_Gearbox_PLACEHOLDER", c_drive, [M["magnesium"]], parent=root)
 
     # ---------------- fasteners ----------------

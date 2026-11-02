@@ -10,6 +10,7 @@ Checks, over one full 720-degree cycle:
   3. each piston reaches TDC (r + l) at its firing angle and BDC (l - r) 180 deg later
   4. valve lift from the driver equals the cam lobe radius under the follower
   5. no valve face ever drops into its piston crown
+  6. no piston skirt reaches the counterweight swing radius
 """
 import os
 import sys
@@ -76,6 +77,7 @@ def main():
     worst_pin = 0.0
     worst_cam = 0.0
     min_clear = {}
+    min_cw = [1e9]
     tdc_err = 0.0
     for f in range(0, 720, 2):
         scn.frame_set(f)
@@ -108,6 +110,9 @@ def main():
             crown = pis.location.z / MM + F.P["comp_height"] + F.P["crown_dome"]
             key = v["cyl"]
             min_clear[key] = min(min_clear.get(key, 1e9), low - crown)
+        for n, pis in pistons.items():       # skirt vs counterweight swing (conservative)
+            skirt = pis.location.z / MM - F.P["piston_skirt"]
+            min_cw[0] = min(min_cw[0], skirt - F.P["counterweight_radius"])
     setp(ctrl, deg_per_frame=0.0)        # crank angle = offset_deg only
     tick = 1000
     for n, pis in pistons.items():
@@ -124,6 +129,7 @@ def main():
     mc = min(min_clear.values())
     print(f"[5] minimum valve-to-piston clearance: {mc:.2f} mm "
           f"(cyl {min(min_clear, key=min_clear.get)})")
+    print(f"[6] minimum piston-skirt to counterweight clearance: {min_cw[0]:.2f} mm")
     print("    firing order:", "-".join(map(str, report["firing_order"])))
     print("    fasteners:", report["bolt_total"], report["bolts"])
     if worst_pin > 0.01:
@@ -134,6 +140,8 @@ def main():
         fails.append("cam lobe and valve lift disagree")
     if mc <= 0.0:
         fails.append("valve hits piston")
+    if min_cw[0] <= 0.0:
+        fails.append("piston skirt hits counterweight")
 
     if "--render" in argv:
         out = argv[argv.index("--render") + 1]
