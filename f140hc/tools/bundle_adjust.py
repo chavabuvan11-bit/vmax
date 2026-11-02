@@ -83,7 +83,7 @@ def load_obs():
     obs.append(("photo11", ("corner", (1, True)), f11["right_cover_inner_bottom_corner"]))
     obs.append(("photo11", ("alternator", 0), f11["alternator_centre"]))
     for view, fn in (("video114", "video_011.4s_topdown.json"), ("video214", "video_021.4s_lowfront.json"),
-                     ("photo16", "photo16_otherbank.json")):
+                     ("photo16", "photo16_otherbank.json"), ("photo04", "photo04_farside.json")):
         sp = json.load(open(os.path.join(RD, "specs", fn)))
         far = sp.get("bank", 0) == 1
         for kind, i, u, v in sp["points"]:
@@ -97,8 +97,8 @@ def load_obs():
 
 
 SIZES = {"photo13": (1800, 1200), "photo11": (1800, 1200), "video114": (1920, 1080),
-         "video214": (1920, 1080), "photo16": (1800, 1200)}
-INIT = {"photo13": "photo13_side_camera.json", "video114": "video_011.4s_topdown_camera.json",
+         "video214": (1920, 1080), "photo16": (1800, 1200), "photo04": (1800, 1200)}
+INIT = {"photo04": "photo04_init_camera.json", "photo13": "photo13_side_camera.json", "video114": "video_011.4s_topdown_camera.json",
         "video214": "video_021.4s_lowfront_camera.json", "photo16": "photo16_otherbank_camera.json"}
 MIRRORED = {"photo16"}             # landmarks seen on the other bank
 # photo 13: the round stand cups under the engine (row ~1075) show as ellipses with a minor/major
@@ -188,7 +188,7 @@ def main():
     # photo 13's focal length is unobservable from these points: fixing it anywhere in 35..200 mm
     # changes the total cost by 3 % and the landmarks by < 10 mm. Studio shots of a 1:4 model are
     # taken with a macro/short-tele lens, so it is pinned at 100 mm (override with F140_FIX_LENS).
-    for spec in filter(None, os.environ.get("F140_FIX_LENS", "photo13:100").split(",")):   # e.g. photo13:100
+    for spec in filter(None, os.environ.get("F140_FIX_LENS", "photo13:100,photo04:100").split(",")):   # e.g. photo13:100
         vname, lv = spec.split(":")
         j = views.index(vname)
         x0[5 + 7 * j + 6] = float(lv)
