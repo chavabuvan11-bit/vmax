@@ -205,6 +205,7 @@ P = {
         "oil_sensor": (-182.0, 180.0, -20.0),
         "diff_centre": (936.0, 55.0),
         "sump_lobe": (-215.0, 486.0, -107.0, 130.0, 111.0, 69.0),
+        "rear_bracket": (-262.0, 671.0, 118.0, 150.0),         # x, y, z centre, height (touches head rear)
     },
     "accessories": {
         "alternator": (-257.0, 37.0, 32.0, 0, 0),         # joint solve (bundle_adjust.py)
@@ -1320,6 +1321,13 @@ def build():
     sx_, sy_, sz_ = NS["oil_sensor"]
     mb.lathe([(8, 0), (8, 8), (5, 8), (5, 26), (3, 30)], 16, T(sx_, sy_, sz_), mi=1)
     mb.finish("F140HC_OilPumpBody", c_house, [m_cast, M["steel"]], parent=root)
+    # black bracket at the rear of the near-bank head (side photo 13: u 393-453, v 630-783;
+    # video 19-22 s): a vertical plate with a sensor block, bolted to the head's rear end
+    mb = MB()
+    hb = NS["rear_bracket"]
+    mb.rbox(hb[0], hb[1], hb[2], 12.0, 44.0, hb[3], 3.0, 2)
+    mb.rbox(hb[0] - 14.0, hb[1] - 6.0, hb[2] + 28.0, 22.0, 30.0, 40.0, 4.0, 2)
+    mb.finish("F140HC_RearHeadBracket", c_house, [M["black"]], parent=root)
     # dry-sump lobe visible under the catalyst front
     mb = MB()
     mb.rbox(*NS["sump_lobe"], 18.0, 4)
