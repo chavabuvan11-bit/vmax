@@ -49,6 +49,11 @@ for lens in lenses:
     K = np.array([[fx, 0, Ww / 2], [0, fx, Hh / 2], [0, 0, 1]])
     ok, rv, tv = cv2.solvePnP(X, U, K, None, flags=cv2.SOLVEPNP_ITERATIVE)
     if not ok: continue
+    R_, _ = cv2.Rodrigues(rv)
+    if ((R_ @ X.T).T + tv.reshape(3))[:, 2].min() <= 0:          # points must be in front of the lens
+        continue
+    if (-R_.T @ tv.reshape(3))[1] > X[:, 1].mean():              # camera must be on the front (-Y) side
+        continue
     pr = cv2.projectPoints(X, rv, tv, K, None)[0].reshape(-1, 2)
     err = np.sqrt(((pr - U) ** 2).sum(1))
     if best is None or err.mean() < best[0]: best = (err.mean(), lens, rv, tv, err, pr)

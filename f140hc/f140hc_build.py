@@ -899,10 +899,10 @@ def build():
         rc = sprocket_radius(P["crank_sprocket_teeth"])
         mb.prism_xz(list(reversed(gear_profile(0, 0, P["crank_sprocket_teeth"], rc))),
                     b["chain_y"] - 6, b["chain_y"] + 6, mi=1)
-    mb.lathe([(30, snout_front + 20), (30, -20)], 32, ROT_Z_TO_Y)   # damper hub
-    mb.ring_y(30, P["crank_pulley_r"], snout_front, snout_front + 30, seg=48, mi=1)   # crank pulley
+    mb.lathe([(30, snout_front + 20), (30, -20)], 32, ROT_Z_TO_Y, mi=2)   # damper hub
+    mb.ring_y(30, P["crank_pulley_r"], snout_front, snout_front + 30, seg=64, mi=2)   # crank pulley (polished)
     mb.cyl_y(55, g["main_y"][-1] + mw / 2 - 0.5, g["length"] + 6, seg=48)   # rear flange
-    crank = mb.finish("F140HC_Crankshaft", c_rot, [M["steel"], M["dlc"]], parent=root)
+    crank = mb.finish("F140HC_Crankshaft", c_rot, [M["steel"], M["dlc"], M["polished"]], parent=root)
     drive(crank, "rotation_euler", 1, f"radians{CRANK}", ctrl)
 
     # ---------------- pistons, rods ----------------
@@ -1239,7 +1239,7 @@ def build():
             a = 2 * pi * i / 5
             mb.box(0.62 * pr_ * cos(a), yp - 10.0, 0.62 * pr_ * sin(a), 0.3 * pr_, 4.0, 6.0,
                    M=Matrix.Rotation(-a, 4, 'Y'), mi=1)
-        pul = mb.finish(f"F140HC_{name}_pulley", c_rot, [M["alu_mach"], M["steel"]], parent=root)
+        pul = mb.finish(f"F140HC_{name}_pulley", c_rot, [M["polished"], M["steel"]], parent=root)
         pul.location = (ax * MM, 0, az * MM)
         ratio = P["crank_pulley_r"] / pr_
         drive(pul, "rotation_euler", 1, f"radians{CRANK}*{ratio:.5f}", ctrl)

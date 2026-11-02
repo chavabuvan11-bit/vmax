@@ -202,6 +202,15 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
      housings, finned coolers at the rear sides, hydraulic unit, shift actuator).
   5. **Materials:** cast textures exist; the polished steel is roughness 0.15. Compare under
      both a dark and a light HDRI, since the video was shot on black.
+- **Front section** (started, needs its own pass):
+  - `tools/fit_front.py` now rejects solutions with points behind the camera and requires the
+    camera on the front side. It still lands at about 25 px of error, and the render comes out
+    more elevated than photo 11. The cover-corner picks are too noisy to pin the elevation.
+  - **Next:** pick better front anchors (crank pulley centre, A/C and alternator pulley
+    centres, coolant Y-manifold hub, cover outer corners), solve with the elevation fixed near
+    0–3° (as `solve_camera_constrained.py` does), then fit the timing-cover outline and the
+    accessory positions.
+  - Pulleys are now polished aluminium. Before, the crank pulley used the black DLC material.
 - **After this section:** the front (timing cover shape, coolant manifold, belt detail), the
   intake pods (the user said to deprioritise them earlier), the gearbox, mufflers and
   tailpipes, and the +X side.
