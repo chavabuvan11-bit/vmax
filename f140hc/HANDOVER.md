@@ -172,8 +172,14 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
   1. **Header loops.**
      - From photo 16 and the top-down video frame, the real primaries are long S-bends leaving
        six separate ports, with lower loop parts that don't bulge far beyond the cover edge.
-     - The model's loops still read as rings from the side, and in the top-down view their
-       lower halves swing too far out.
+     - **Partly done:** `tools/triangulate.py` plus `reference_data/picks_headers.json`
+       triangulated the clamp at (−366, 327, 59), the rear bellows at x −331 and the front
+       bellows at x −307. The O2 sensor came out within 15 mm of the model. The clamp is now
+       fixed at its triangulated position, and tube depths follow per-tube anchors
+       (`P["exhaust"]["tube_anchors"]`).
+     - **Still to do:** loop shapes in photo 16 read rounder than the real S-bends. Add more
+       triangulated landmarks along each loop (arch tops, loop bottoms, port flanges) to
+       `picks_headers.json` and turn them into anchors.
      - **Fix: triangulate.** Pick the same landmarks (bellows centres, arch tops, loop bottoms,
        port flanges) in photo 13, video 11.4 s and photo 16 (mirrored), using the solved
        cameras. Triangulate them and run each tube through its 3D points.

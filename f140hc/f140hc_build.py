@@ -143,7 +143,16 @@ P = {
         # plan view (top photo 20): primaries leave their ports just outside the cover edge and
         # sweep outward toward the clamp, which sits ~50 mm outboard of the dome's centre
         "port_x": -292.0, "sweep_x": -372.0, "loop_bulge": 18.0,
-        "loop_tilt": 0.35,                            # mm in x per mm of height (photo 16 vs side photo 13)
+        # triangulated landmarks (tools/triangulate.py, reference_data/picks_headers.json): photo 13 +
+        # video frame 11.4 s. clamp (-366, 327, 59); rear bellows x -331; front bellows x -307
+        "clamp_pos": (-366.0, 327.0, 59.0),
+        # depth anchors per traced tube {trace index: x}; port at -292, end at the collector
+        "tube_anchors": [{0: -305.0, 4: -307.0, 5: -307.0, 7: -335.0},
+                         {3: -335.0, 6: -340.0, 9: -345.0},
+                         {3: -335.0, 6: -345.0, 9: -350.0},
+                         {2: -340.0},
+                         {3: -330.0, 6: -345.0},
+                         {1: -331.0, 2: -331.0, 4: -340.0}],
         "neck_out": 0.62,                             # outboard component of the inlet axis
         "sensor_angle": 30.0,                         # O2 sensor on the upper-outboard shoulder (deg)
         "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
@@ -1482,11 +1491,11 @@ def build():
         # dome neck geometry first: the collector sits on the neck axis just beyond the clamp
         CD = EX["cat_dome"]
         cx = -EX["cat_x"]
-        _dv = Vector((-EX["clamp_dir"][0], -EX["clamp_dir"][1])).normalized()
-        ax3 = Vector((-EX["neck_out"], _dv.x, _dv.y)).normalized()
+        dome_c = Vector((cx, CD["y_seam"], CD["zc"]))
+        cl3 = Vector(EX["clamp_pos"])                                # triangulated clamp centre
+        ax3 = (cl3 - dome_c).normalized()
         _tt = 1.0 / sqrt((ax3.x / CD["r"]) ** 2 + (ax3.y / CD["length"]) ** 2 + (ax3.z / CD["r"]) ** 2)
-        sp3 = Vector((cx, CD["y_seam"], CD["zc"])) + ax3 * _tt
-        cl3 = sp3 + ax3 * 14.0
+        sp3 = dome_c + ax3 * _tt
         col3 = cl3 + ax3 * 44.0
         collector = tuple(col3)
         # header tubes traced from the photo: port stub + traced centreline, flex bellows
@@ -1505,15 +1514,17 @@ def build():
             p0 = (-abs(px_), yc, pz_)
             p1 = (p0[0] - 0.843 * 35, yc, p0[2] - 0.537 * 35)
             pts3 = []
-            ycol = collector[1]
+            anc = dict(EX["tube_anchors"][ci])
+            anc.setdefault(-1, EX["port_x"])
+            anc.setdefault(len(trace), collector[0])
+            keys = sorted(anc)
             for j_, (X, Y, rz) in enumerate(trace):
                 y_, z_ = zoom_to_yz(X, Y)
-                t_ = j_ / max(1, len(trace) - 1)
-                prog = min(1.0, max(0.0, (y_ - yc) / (ycol - yc))) if abs(ycol - yc) > 1 else 1.0
-                prog = prog * prog * (3 - 2 * prog)
-                dep = EX["port_x"] + (EX["sweep_x"] - EX["port_x"]) * prog - EX["loop_bulge"] * sin(pi * t_)
-                dep += EX["loop_tilt"] * (z_ - 100.0)        # high part of a loop tucks in under the cover
-                dep = min(dep, EX["port_x"])
+                k0 = max(k for k in keys if k <= j_)
+                k1 = min(k for k in keys if k >= j_)
+                t_ = 0.0 if k1 == k0 else (j_ - k0) / (k1 - k0)
+                t_ = t_ * t_ * (3 - 2 * t_)
+                dep = anc[k0] + (anc[k1] - anc[k0]) * t_
                 pts3.append((dep, y_, z_, rz / zk * ky_ * EX["tube_scale"]))
             r_t = sum(p[3] for p in pts3) / len(pts3)
             path = [p0, p1, ((p1[0] + pts3[0][0]) / 2, (p1[1] + pts3[0][1]) / 2, (p1[2] + pts3[0][2]) / 2)]
@@ -1594,13 +1605,6 @@ def build():
                   cx=W((cx, 0, 0))[0], cz=(top0 + bot0) / 2, seg=56)
         mb.finish(f"F140HC_Catalyst_{tag}", c_ind, [m_pol, M["steel"], M["black"]], parent=root)
         # inlet neck + V-band clamp on the dome's upper-front face, axis forward-up
-        dvec = Vector((-EX["clamp_dir"][0], -EX["clamp_dir"][1])).normalized()  # (dy, dz) outward: fwd-up
-        # find where a ray from the dome centre along dvec meets the ellipsoid surface
-        cy0, cz0 = CD["y_seam"], CD["zc"]
-        ax3 = Vector((-EX["neck_out"], dvec.x, dvec.y)).normalized()           # near-bank coords
-        tt = 1.0 / sqrt((ax3.x / CD["r"]) ** 2 + (ax3.y / CD["length"]) ** 2 + (ax3.z / CD["r"]) ** 2)
-        sp3 = Vector((cx, cy0, cz0)) + ax3 * tt                                # point on the dome
-        cl3 = sp3 + ax3 * 14.0                                                 # clamp ring centre
         sy_, sz_ = sp3.y, sp3.z
         cy_, cz_ = cl3.y, cl3.z
         ax_w = Vector(W(tuple(ax3))) - Vector(W((0.0, 0.0, 0.0)))
