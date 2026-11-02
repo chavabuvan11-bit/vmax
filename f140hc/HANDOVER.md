@@ -208,9 +208,9 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
   4. **Gearbox:** a box with an X-lattice of stiffening ribs and the differential cover.
      **Still to do:** the real case shape from photos 14, 15, 07, 12 and 20 (stepped
      housings, finned coolers at the rear sides, hydraulic unit, shift actuator).
-  5. **Materials:** cast textures exist; the polished steel is roughness 0.15. Compare under
-     both a dark and a light HDRI, since the video was shot on black.
-- **Front section** (started, needs its own pass):
+  5. **Materials:** cast textures exist. The polished exhaust steel is roughness 0.19; with the
+     photo_studio_01 HDRI it gives the soft satin highlights of the Amalgam photos. The video
+     was shot on black, so compare under a dark HDRI as well.
   - `tools/fit_front.py` now rejects solutions with points behind the camera and requires the
     camera on the front side. It still lands at about 25 px of error, and the render comes out
     more elevated than photo 11. The cover-corner picks are too noisy to pin the elevation.
