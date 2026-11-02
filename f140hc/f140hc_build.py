@@ -135,10 +135,10 @@ P = {
         "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
         "port_z_above_deck": 20.0,
         "tube_scale": 1.35,                           # ~50 mm OD: video close-ups vs 46 mm coil boots
-        # depth (x) along each traced tube: start, loop, end. The steep top-down video frame (11.4 s)
-        # shows the bundle sitting tight to the head, so the loops only swing out ~45 mm.
-        "tube_depth": [(-300.0, -342.0, -330.0), (-300.0, -348.0, -330.0), (-300.0, -335.0, -330.0),
-                       (-300.0, -350.0, -330.0), (-300.0, -352.0, -330.0), (-300.0, -348.0, -330.0)],
+        # depth (x) along each traced tube: start, loop, end. Top photo 20 puts the bundle's outer
+        # edge at x = -360 for y 150..300 (cam cover as ruler), so loop centrelines sit at ~-335.
+        "tube_depth": [(-300.0, -340.0, -330.0), (-300.0, -340.0, -330.0), (-300.0, -335.0, -330.0),
+                       (-300.0, -336.0, -330.0), (-300.0, -336.0, -330.0), (-300.0, -336.0, -330.0)],
         "collector": (-326.0, 282.0, 62.0),
         "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
         "cat_x": 320.0,
@@ -151,6 +151,9 @@ P = {
                          (760, 10, -122), (809, -17, -127), (850, -31, -131), (883, -41, -133),
                          (912, -49, -135), (1000, -49, -137)],
         "cat_beads": [449.0, 576.0, 687.0],
+        # plan width vs height: top photo 20 shows the dome as round (outer edge -414 at y 410..460)
+        # but the canister behind it narrower (outer -390 at y 500..560): an oval can, 0.74 as wide.
+        "cat_oval": [(459.0, 1.0), (500.0, 0.74), (690.0, 0.74), (760.0, 0.9), (1000.0, 1.0)],
         "sensor": (549.0, 82.0), "slip_joint": (916.0, 960.0),
         "muffler_y": (1402.0, 1553.0), "muffler_x_span": (14.0, 340.0),
         "muffler_x": 220.0, "muffler_z": 120.0, "muffler_h": 210.0,
@@ -1520,9 +1523,21 @@ def build():
         # catalyst: lofted canister + cones from the traced (y, top z, bottom z) sections
         cx = -EX["cat_x"]
         secs = []
+        def oval(y):
+            tab = EX["cat_oval"]
+            if y <= tab[0][0]:
+                return tab[0][1]
+            for (y0o, k0), (y1o, k1) in zip(tab[:-1], tab[1:]):
+                if y <= y1o:
+                    t_ = (y - y0o) / (y1o - y0o)
+                    return k0 + (k1 - k0) * (t_ * t_ * (3 - 2 * t_))
+            return tab[-1][1]
+
         def ring(y, ztop, zbot, grow=0.0):
             zc, r = (ztop + zbot) / 2, (ztop - zbot) / 2 + grow
-            return [W((cx + r * cos(2 * pi * k_ / 56), y, zc + r * sin(2 * pi * k_ / 56))) for k_ in range(56)]
+            rx = (r - grow) * oval(y) + grow
+            return [W((cx - (r - rx) * 0.35 + rx * cos(2 * pi * k_ / 56), y, zc + r * sin(2 * pi * k_ / 56)))
+                    for k_ in range(56)]
         CD = EX["cat_dome"]
         dome = []
         for k_ in range(14):
