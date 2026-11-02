@@ -135,10 +135,10 @@ P = {
         "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
         "port_z_above_deck": 20.0,
         "tube_scale": 1.35,                           # ~50 mm OD: video close-ups vs 46 mm coil boots
-        # depth (x) along each traced tube: start, loop, end. Loops swing out (top photo 20 and the
-        # low video view need them overlapping the cover), ends tuck in to the clamp.
-        "tube_depth": [(-330.0, -372.0, -332.0), (-330.0, -378.0, -330.0), (-325.0, -350.0, -330.0),
-                       (-330.0, -388.0, -332.0), (-330.0, -392.0, -332.0), (-330.0, -385.0, -330.0)],
+        # depth (x) along each traced tube: start, loop, end. The steep top-down video frame (11.4 s)
+        # shows the bundle sitting tight to the head, so the loops only swing out ~45 mm.
+        "tube_depth": [(-300.0, -342.0, -330.0), (-300.0, -348.0, -330.0), (-300.0, -335.0, -330.0),
+                       (-300.0, -350.0, -330.0), (-300.0, -352.0, -330.0), (-300.0, -348.0, -330.0)],
         "collector": (-326.0, 282.0, 62.0),
         "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
         "cat_x": 320.0,
@@ -161,6 +161,9 @@ P = {
     # front accessories: (x, z) of the pulley centre vs crank axis, pulley r, body r, body length
     # front photo 11, scaled with the cam cover as the ruler (EST +-10%)
     "crank_pulley_r": 57.0,
+    # belt order after the crank, CCW seen from the front; -1 = belt runs over the back of an idler
+    "belt_route": [("ac_compressor", 1), ("idler_upper", 1), ("alternator", 1), ("idler_lower", -1),
+                   ("water_pump", 1)],
     # near-side lower details, traced from side photo 13 (y, z via the coil-pitch ruler)
     "near_side": {
         "alt_xz": (-262.0, 46.0),
@@ -287,6 +290,37 @@ def resample_closed(poly, spacing):
         t = (target - acc) / L
         out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
     return out
+
+
+def serpentine(route, arc_step_deg=6.0):
+    """Closed belt path (CCW in XZ) around pulleys [((x, z), signed r)], r < 0 = back-side wrap."""
+    n = len(route)
+    tan = []
+    for i in range(n):
+        (c1, R1), (c2, R2) = route[i], route[(i + 1) % n]
+        dx, dz = c2[0] - c1[0], c2[1] - c1[1]
+        L = math.hypot(dx, dz)
+        ux, uz = dx / L, dz / L
+        rx, rz = uz, -ux                                  # right-hand perpendicular (outside of a CCW loop)
+        cphi = max(-1.0, min(1.0, (R1 - R2) / L))
+        sphi = sqrt(1 - cphi * cphi)
+        nx, nz = ux * cphi + rx * sphi, uz * cphi + rz * sphi
+        tan.append(((c1[0] + R1 * nx, c1[1] + R1 * nz), (c2[0] + R2 * nx, c2[1] + R2 * nz)))
+    path = []
+    for i in range(n):
+        c, R = route[i]
+        a_in = math.atan2(tan[i - 1][1][1] - c[1], tan[i - 1][1][0] - c[0]) if R > 0 else \
+            math.atan2(c[1] - tan[i - 1][1][1], c[0] - tan[i - 1][1][0])
+        a_out = math.atan2(tan[i][0][1] - c[1], tan[i][0][0] - c[0]) if R > 0 else \
+            math.atan2(c[1] - tan[i][0][1], c[0] - tan[i][0][0])
+        sweep = (a_out - a_in) % (2 * pi) if R > 0 else -((a_in - a_out) % (2 * pi))
+        steps = max(2, int(abs(math.degrees(sweep)) / arc_step_deg))
+        r_ = abs(R)
+        sgn = 1 if R > 0 else -1
+        for k in range(steps + 1):
+            a = a_in + sweep * k / steps
+            path.append((c[0] + sgn * r_ * cos(a), c[1] + sgn * r_ * sin(a)))
+    return path
 
 
 def sprocket_radius(teeth):
@@ -1071,8 +1105,9 @@ def build():
         # outboard edge, plan-view rounded ends, hollow
         o = -inb                                        # outboard direction in bank-local x
         z0 = deck + hh
-        prof = [(-82, 0), (82, 0), (82, 7), (80, 12), (79, 30), (75, 38), (66, 42), (-46, 42), (-62, 38),
-                (-71, 11), (-82, 7)]
+        # flat bolting lip along both lower edges (bolts sit on it: side photo 13, video 11.4 s)
+        prof = [(-82, 0), (82, 0), (82, 7), (77, 7), (75, 12), (74, 30), (70, 38), (62, 42), (-46, 42),
+                (-62, 38), (-68, 12), (-70, 7), (-82, 7)]
         Hc = P["cover_height"]
         kx = hw / 82.0
         prof = [(o * x * kx, z * Hc / 42.0) for x, z in prof]
@@ -1179,10 +1214,12 @@ def build():
         drive(pul, "rotation_euler", 1, f"radians{CRANK}*{ratio:.5f}", ctrl)
         acc[name] = (ax, az, pr_)
     # crank pulley sits on the crank snout (part of the crankshaft mesh); belt around all
-    belt_pts = [p for (ax, az, pr_) in acc.values() for p in circle_pts(ax, az, pr_ + 2, 64)]
-    belt_pts += circle_pts(0.0, 0.0, P["crank_pulley_r"] + 2, 64)
+    route = [((0.0, 0.0), P["crank_pulley_r"] + 2.5)]
+    for name, side in P["belt_route"]:
+        ax, az, pr_ = acc[name]
+        route.append(((ax, az), side * (pr_ + 2.5)))
     mb = MB()
-    mb.ribbon_xz(hull2d(belt_pts), 2.5, yp - 10.0, yp + 10.0)
+    mb.ribbon_xz(serpentine(route), 2.5, yp - 10.0, yp + 10.0)
     mb.finish("F140HC_AccessoryBelt", c_rot, [M["black"]], parent=root)
     # ---------------- near-side lower details (traced from side photo 13) -----------------
     NS = P["near_side"]
@@ -1561,6 +1598,7 @@ def build():
     # ---------------- gearbox placeholder ----------------
     mb = MB()
     mb.lathe([(150, L), (185, L + 40), (185, L + 120), (170, L + 130)], 48, ROT_Z_TO_Y)
+    mb.lathe([(150, L), (196, L), (196, L + 16), (150, L + 16)], 64, ROT_Z_TO_Y)   # bolting flange
     GB = P["gearbox"]
     end = GB["rear_y"]
     mb.box(0, (L + 125 + end) / 2, GB["centre_z"], 2 * GB["half_width"], end - L - 125, GB["height"])
@@ -1623,10 +1661,10 @@ def build():
                 for dx in (-19.0, 19.0):
                     bolt(f"CamCap_{b['label']}", 8, 45.0, (side * v["cam_x"] + dx, y, v["cam_z"] + 24.0),
                          parent=be)
-        ztop = deck + hh + 6.0
+        ztop = deck + hh + 7.0 * P["cover_height"] / 42.0
         for y in rows:
             for sx in (-1, 1):
-                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 5.0), y, ztop), parent=be)
+                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 3.0 * hw / 82.0), y, ztop), parent=be)
         for y in (hf + 14.0, hr - 14.0):
             for sx in (-1, 1):
                 bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 40.0), y, ztop), parent=be)
@@ -1649,7 +1687,7 @@ def build():
         bolt("Sump", 6, 25.0, (x, y, cb - P["sump_depth"]), rot=(pi, 0, 0))
     for i in range(14):
         a = 2 * pi * i / 14
-        bolt("Bellhousing", 10, 60.0, None, M_=T(176 * cos(a), L + 6.0, 176 * sin(a)) @ ROT_Z_TO_Y)
+        bolt("Bellhousing", 10, 60.0, None, M_=T(184 * cos(a), L + 16.0, 184 * sin(a)) @ ROT_Z_TO_Y)
     for x, z in resample_closed([(tc_c[0] + (x - tc_c[0]) * 0.95, tc_c[1] + (z - tc_c[1]) * 0.95)
                                  for x, z in tc_outline], 60.0):
         bolt("TimingCover", 6, 30.0, None, M_=T(x, hf, z) @ ROT_Z_TO_NY)
