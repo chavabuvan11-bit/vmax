@@ -139,7 +139,13 @@ P = {
         # edge at x = -360 for y 150..300 (cam cover as ruler), so loop centrelines sit at ~-335.
         "tube_depth": [(-300.0, -340.0, -330.0), (-300.0, -340.0, -330.0), (-300.0, -335.0, -330.0),
                        (-300.0, -336.0, -330.0), (-300.0, -336.0, -330.0), (-300.0, -336.0, -330.0)],
-        "collector": (-326.0, 282.0, 62.0),
+        "collector": (-382.0, 284.0, 62.0),
+        # plan view (top photo 20): primaries leave their ports just outside the cover edge and
+        # sweep outward toward the clamp, which sits ~50 mm outboard of the dome's centre
+        "port_x": -292.0, "sweep_x": -372.0, "loop_bulge": 18.0,
+        "loop_tilt": 0.35,                            # mm in x per mm of height (photo 16 vs side photo 13)
+        "neck_out": 0.62,                             # outboard component of the inlet axis
+        "sensor_angle": 30.0,                         # O2 sensor on the upper-outboard shoulder (deg)
         "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
         "cat_x": 320.0,
         # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
@@ -1473,6 +1479,16 @@ def build():
         def W(p):                                        # near-bank coords -> this bank
             return (p[0] if sx < 0 else -p[0], p[1] + dy, p[2])
         tag = b["label"]
+        # dome neck geometry first: the collector sits on the neck axis just beyond the clamp
+        CD = EX["cat_dome"]
+        cx = -EX["cat_x"]
+        _dv = Vector((-EX["clamp_dir"][0], -EX["clamp_dir"][1])).normalized()
+        ax3 = Vector((-EX["neck_out"], _dv.x, _dv.y)).normalized()
+        _tt = 1.0 / sqrt((ax3.x / CD["r"]) ** 2 + (ax3.y / CD["length"]) ** 2 + (ax3.z / CD["r"]) ** 2)
+        sp3 = Vector((cx, CD["y_seam"], CD["zc"])) + ax3 * _tt
+        cl3 = sp3 + ax3 * 14.0
+        col3 = cl3 + ax3 * 44.0
+        collector = tuple(col3)
         # header tubes traced from the photo: port stub + traced centreline, flex bellows
         zu0, zv0, zk = EX["tube_zoom"]
         u0_, y0_, ky_, v0_, z0_, kz_ = EX["photo13"]
@@ -1489,16 +1505,19 @@ def build():
             p0 = (-abs(px_), yc, pz_)
             p1 = (p0[0] - 0.843 * 35, yc, p0[2] - 0.537 * 35)
             pts3 = []
-            d0, d1, d2 = EX["tube_depth"][ci]
+            ycol = collector[1]
             for j_, (X, Y, rz) in enumerate(trace):
                 y_, z_ = zoom_to_yz(X, Y)
                 t_ = j_ / max(1, len(trace) - 1)
-                dep = d0 + (d1 - d0) * sin(pi * min(1.0, t_ / 0.5) / 2) if t_ < 0.5 else \
-                    d1 + (d2 - d1) * (1 - cos(pi * (t_ - 0.5) / 1.0))
+                prog = min(1.0, max(0.0, (y_ - yc) / (ycol - yc))) if abs(ycol - yc) > 1 else 1.0
+                prog = prog * prog * (3 - 2 * prog)
+                dep = EX["port_x"] + (EX["sweep_x"] - EX["port_x"]) * prog - EX["loop_bulge"] * sin(pi * t_)
+                dep += EX["loop_tilt"] * (z_ - 100.0)        # high part of a loop tucks in under the cover
+                dep = min(dep, EX["port_x"])
                 pts3.append((dep, y_, z_, rz / zk * ky_ * EX["tube_scale"]))
             r_t = sum(p[3] for p in pts3) / len(pts3)
             path = [p0, p1, ((p1[0] + pts3[0][0]) / 2, (p1[1] + pts3[0][1]) / 2, (p1[2] + pts3[0][2]) / 2)]
-            path += [p[:3] for p in pts3] + [EX["collector"]]
+            path += [p[:3] for p in pts3] + [collector]
             nurbs_tube(f"F140HC_Primary_C{c['num']:02d}", [W(p) for p in path], r_t, m_pol)
             Mf, _ = axis_matrix(W(p0), W((p0[0] - 0.843, p0[1], p0[2] - 0.537)))
             mb_f.rbox(0, 0, 5.0, 74.0, 58.0, 10.0, 3.0, 2, M=Mf)
@@ -1516,9 +1535,10 @@ def build():
                                40, Mb, closed=True)
         mb_b.finish(f"F140HC_FlexBellows_{tag}", c_ind, [M["bellows"]], parent=root)
         mb_f.finish(f"F140HC_HeaderFlanges_{tag}", c_ind, [M["steel"], M["bolt"]], parent=root)
-        mb = MB()                                            # collector bulb above the clamp
-        mb.lathe([(0, -40), (20, -36), (34, -20), (38, 0), (34, 20), (20, 36), (0, 40)], 40,
-                 T(*W(EX["collector"])) @ RX(90.0 - 40.0))
+        mb = MB()                                            # tapered merge collector on the neck axis
+        _axw = Vector(W(tuple(ax3))) - Vector(W((0.0, 0.0, 0.0)))
+        mb.lathe([(EX["clamp_r"], -48), (EX["clamp_r"] + 3, -30), (EX["clamp_r"] + 8, 0), (EX["clamp_r"] + 6, 18),
+                  (0, 34)], 40, T(*W(collector)) @ _axw.to_track_quat('Z', 'Y').to_matrix().to_4x4())
         mb.finish(f"F140HC_HeaderCollector_{tag}", c_ind, [m_pol], parent=root)
         # catalyst: lofted canister + cones from the traced (y, top z, bottom z) sections
         cx = -EX["cat_x"]
@@ -1562,7 +1582,9 @@ def build():
         mb.loft(secs)
         # oxygen sensor boss + sensor on top of the canister
         sy, sz = EX["sensor"]
-        Ms = T(*W((cx, sy, sz)))
+        sa = radians(EX["sensor_angle"])
+        Ms = T(*W((cx - 0.74 * 97.0 * sin(sa) - 9.0, sy, sz - 97.0 * (1 - cos(sa))))) @ \
+            Matrix.Rotation(-sa if sx < 0 else sa, 4, 'Y')            # tilt outboard
         mb.lathe([(14, -6), (14, 4), (12.5, 4), (12.5, 12)], 6, Ms, mi=1)
         mb.lathe([(9, 12), (9, 34), (6, 40), (0, 40)], 24, Ms, mi=2)
         # slip joint on the outlet pipe
@@ -1575,16 +1597,19 @@ def build():
         dvec = Vector((-EX["clamp_dir"][0], -EX["clamp_dir"][1])).normalized()  # (dy, dz) outward: fwd-up
         # find where a ray from the dome centre along dvec meets the ellipsoid surface
         cy0, cz0 = CD["y_seam"], CD["zc"]
-        tt = 1.0 / sqrt((dvec.x / CD["length"]) ** 2 + (dvec.y / CD["r"]) ** 2)
-        sy_, sz_ = cy0 + dvec.x * tt, cz0 + dvec.y * tt
-        cy_, cz_ = sy_ + dvec.x * 14.0, sz_ + dvec.y * 14.0
-        Mn = T(*W((cx, sy_ - dvec.x * 20.0, sz_ - dvec.y * 20.0))) @ \
-            Vector((0.0, dvec.x, dvec.y)).to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        ax3 = Vector((-EX["neck_out"], dvec.x, dvec.y)).normalized()           # near-bank coords
+        tt = 1.0 / sqrt((ax3.x / CD["r"]) ** 2 + (ax3.y / CD["length"]) ** 2 + (ax3.z / CD["r"]) ** 2)
+        sp3 = Vector((cx, cy0, cz0)) + ax3 * tt                                # point on the dome
+        cl3 = sp3 + ax3 * 14.0                                                 # clamp ring centre
+        sy_, sz_ = sp3.y, sp3.z
+        cy_, cz_ = cl3.y, cl3.z
+        ax_w = Vector(W(tuple(ax3))) - Vector(W((0.0, 0.0, 0.0)))
+        Mn = T(*W(tuple(sp3 - ax3 * 20.0))) @ ax_w.to_track_quat('Z', 'Y').to_matrix().to_4x4()
         mbn = MB()
         mbn.lathe([(0, 0), (EX["clamp_r"] + 2, 0), (EX["clamp_r"] + 2, 40), (EX["clamp_r"], 46), (0, 46)], 48, Mn)
         mbn.finish(f"F140HC_CatNeck_{tag}", c_ind, [m_pol], parent=root)
-        a_ = Vector(W((cx, cy_, cz_)))
-        dirv = Vector(W((cx, cy_ + EX["clamp_dir"][0], cz_ + EX["clamp_dir"][1]))) - a_
+        a_ = Vector(W(tuple(cl3)))
+        dirv = -ax_w
         Mc = T(*a_) @ dirv.to_track_quat('Z', 'Y').to_matrix().to_4x4()
         mb = MB()
         r_c = EX["clamp_r"]

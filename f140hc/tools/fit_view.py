@@ -13,7 +13,10 @@ spp = int(sys.argv[3]) if len(sys.argv) > 3 else 48
 os.makedirs(out, exist_ok=True)
 rep, g = F.build()
 P, MM = F.P, F.MM
-img = cv2.imread(spec["photo"]); Hh, Ww = img.shape[:2]
+photo = spec["photo"]
+if not os.path.isabs(photo):                     # relative photos live under $F140_REFS
+    photo = os.path.join(os.environ.get("F140_REFS", "refs"), photo)
+img = cv2.imread(photo); Hh, Ww = img.shape[:2]
 b = g["banks"][spec["bank"]]
 be = bpy.data.objects[f"F140HC_Bank_{b['label']}"]
 bpy.context.view_layer.update()
