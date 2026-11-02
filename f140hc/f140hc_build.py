@@ -179,22 +179,22 @@ P = {
     # front accessories: (x, z) of the pulley centre vs crank axis, pulley r, body r, body length
     # front photo 11, scaled with the cam cover as the ruler (EST +-10%)
     "crank_pulley_r": 72.0,                       # front photo 11: 145 mm across
-    # front casting outline (x, z) traced from front photo 11 (crank centre origin, 0.84 mm/px).
-    # NB the alternator measures z 81 here but z 46 in side photo 13: one ruler is off (see HANDOVER).
-    "front_casting": [(-259, 204), (-267, 179), (-250, 100), (-238, 20), (-223, -101), (-122, -112),
-                      (0, -113), (102, -100), (200, -40), (225, 60), (237, 129), (250, 207), (74, 311),
-                      (0, 238), (-88, 311)],
+    # front casting outline (x, z) on the cover front plane (y = -100): photo 11 picks back-projected
+    # through the jointly solved camera (tools/bundle_adjust.py + tools/backproject.py)
+    "front_casting": [(-250, 198), (-260, 172), (-242, 154), (-257, 8), (-230, -135), (-127, -141),
+                      (-1, -147), (101, -115), (214, 9), (237, 117), (250, 200), (79, 309),
+                      (5, 233), (-79, 309)],
     # belt order after the crank, CCW seen from the front; -1 = belt runs over the back of an idler
     "belt_route": [("ac_compressor", 1), ("idler_upper", 1), ("alternator", 1), ("idler_lower", -1),
                    ("water_pump", 1)],
     # near-side lower details, traced from side photo 13 (y, z via the coil-pitch ruler)
     "near_side": {
-        "alt_xz": (-262.0, 46.0),
+        "alt_xz": (-257.0, 37.0),                              # joint 3-view solve
         # (y start, y end, radius, kind): rear cover, rear housing, stator band, front housing, nose
         "alt_sections": [(50, 6, 70, "ribbed"), (6, -48, 75, "slots"), (-48, -62, 77, "band"),
                          (-62, -96, 75, "slots"), (-96, -106, 50, "nose")],
         "alt_lug": (-233.0, -40.0, 128.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
-        "water_pump": (-190.0, -90.0, 57.0),                   # x, z, radius (housing along y)
+        "water_pump": (-162.0, -90.0, 57.0),                   # x (front, joint camera), z (side), radius
         "water_outlet": (-108.0, -56.0),                       # y, z of the side outlet
         "oil_pump_x": -172.0,
         "oil_pump_cyl": (211.0, 94.0, -98.0, 44.0),            # y0, y1, z, radius
@@ -204,11 +204,11 @@ P = {
         "sump_lobe": (-215.0, 486.0, -107.0, 130.0, 111.0, 69.0),
     },
     "accessories": {
-        "alternator": (-262.0, 46.0, 32.0, 0, 0),         # body built in near_side
-        "idler_upper": (-134.0, 84.0, 25.0, 0, 0),
-        "idler_lower": (-176.0, 13.0, 24.0, 0, 0),
-        "ac_compressor": (168.0, -13.0, 55.0, 58.0, 170.0),
-        "water_pump": (-190.0, -90.0, 34.0, 0, 0),       # housing built in near_side
+        "alternator": (-257.0, 37.0, 32.0, 0, 0),         # joint solve (bundle_adjust.py)
+        "idler_upper": (-131.0, 88.0, 25.0, 0, 0),
+        "idler_lower": (-170.0, 15.0, 24.0, 0, 0),
+        "ac_compressor": (167.0, -25.0, 55.0, 58.0, 170.0),
+        "water_pump": (-162.0, -90.0, 34.0, 0, 0),       # housing built in near_side
     },
     "head_front": -100.0,          # head / cam cover front face (block front = 0)
     "head_rear_ext": 10.0,         # head / cam cover overhang past the block rear

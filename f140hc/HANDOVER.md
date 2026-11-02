@@ -214,20 +214,19 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
   - **Done since:** the front casting outline is traced from photo 11 (`P["front_casting"]`,
     crank-centre origin, 0.84 mm/px), and the crank pulley radius is 72 (145 mm across, from
     the same photo).
-  - **Open conflict:** photo 11 puts the alternator 81 mm above the crank; side photo 13 gives
-    46 mm.
-    - **Third view checked** (video 31.5 s front-left close-up, frame `f_031.5.jpg`). Measured in
-      crank-pulley radii, which needs no external ruler: alternator centre about +1.25 r above
-      the crank (video), +1.1 r (photo 11), but only +0.64 r implied by the side-photo mapping.
-      So the side-photo mapping is off for the lower front of the engine.
-    - The underlying issue: about 20% vertical-scale disagreement below the cam covers between
-      the photo 13 mapping (z = 199 − (v − 600)·0.737, anchored at the cover bottom edge) and
-      the photo 11 mapping (0.84 mm/px from the cover half-width).
-    - **Fix properly** with a joint bundle adjustment: solve all cameras plus a few global scale
-      parameters (bore pitch, crank-to-cover distance) together from shared features (coils,
-      cover corners, pulley centres, flange bolts, differential flange). Then re-derive the
-      traced parts below the covers (alternator, pumps, catalyst z).
-    - Until then the model keeps the photo 13 values, since photo 13 is the focus view.
+  - **Resolved: joint solve** (`tools/bundle_adjust.py`). It covers photos 13 and 11 and video
+    frame 11.4 s, with unknowns for each camera, the alternator and two global scales. Results:
+    - The global scales come out at 1.006 (horizontal) and 0.994 (vertical), so the model's
+      proportions are consistent across views.
+    - Errors: 4.2 px (photo 11), 6.3 px (photo 13), 10.4 px (video).
+    - **The real cause:** front photo 11 is not near-orthographic (the solved lens is about
+      91 mm). My orthographic 0.84 mm/px reading inflated heights, so the alternator read 81 mm
+      when it's actually 37 mm.
+    - **Re-derived from that:** front picks back-projected with `tools/backproject.py` through
+      `reference_data/cameras/ba_photo11_camera.json` give the front casting outline, the A/C at
+      (167, −25), the idlers, the water pump x (−162) and the alternator at (−257, z 37).
+    - Use the `ba_*` cameras from now on, and extend the joint solve with more views and features
+      (photo 16 mirrored, video 21.4 s, flange bolts) rather than solving views one at a time.
 - **After this section:** the front (timing cover shape, coolant manifold, belt detail), the
   intake pods (the user said to deprioritise them earlier), the gearbox, mufflers and
   tailpipes, and the +X side.
