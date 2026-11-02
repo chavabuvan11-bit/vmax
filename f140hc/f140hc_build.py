@@ -179,6 +179,35 @@ P = {
             {0: -298.5, 1: -306.0, 2: -314.4, 3: -324.5, 4: -334.2, 5: -341.7, 6: -347.4, 7: -351.7, 8: -355.2},
             {0: -281.8, 1: -284.3, 2: -293.6, 3: -306.3, 4: -318.2, 5: -324.1, 6: -316.8, 7: -301.7, 8: -304.0, 9: -314.5},
             {0: -343.1, 1: -348.5, 2: -355.3, 3: -360.0, 4: -360.4, 5: -361.2, 6: -360.4}],
+        # FAR (+X) bank: its own traces in side photo 04 (front at left), full-res pixels (u, v, radius px),
+        # back-projected through the jointly solved photo-04 camera at x = far_tube_anchors (positive).
+        # Photo 04 shows the far bank differs from the mirrored near bank: the front primaries drop in
+        # S-bends to the bellows instead of looping above the ports.
+        "photo04_cam": {"lens": 99.9990, "loc": (6.299869, 1.317772, -2.681880), "size": (1800, 1200),
+                        "rot": ((-0.068028, 0.449486, 0.890693), (0.996816, -0.006597, 0.079463), (0.041593, 0.893263, -0.447606))},
+        "far_traced_tubes": [
+            # radius column = silhouette half-width in photo-04 px (~1.38 mm/px): primaries ~30-32 px wide;
+            # like the near bank, cyl 8+9 and cyl 10+11 merge into fat pipes that drop into the clamp
+            (0, [(378, 630, 15.5), (410, 662, 15.5), (440, 690, 15.5), (468, 714, 15.5), (500, 729, 15.5),
+                 (530, 737, 16)], [(2, 3)]),
+            (1, [(418, 622, 15.5), (428, 640, 15.5), (452, 660, 15.5), (480, 682, 15.5), (500, 698, 16)], [],
+             {"merge_into": 2}),
+            (2, [(470, 640, 15.5), (486, 614, 15.5), (504, 602, 15.5), (524, 608, 15.5), (536, 636, 17),
+                 (546, 668, 19), (552, 700, 19)], []),
+            (3, [(538, 640, 16), (552, 612, 16), (580, 598, 16), (614, 598, 16), (640, 612, 16), (648, 636, 18),
+                 (640, 662, 22), (604, 688, 24), (568, 710, 24)], []),
+            (4, [(600, 652, 15.5), (612, 622, 15.5), (638, 612, 15.5), (664, 616, 15.5), (676, 634, 15.5),
+                 (668, 656, 16)], [], {"merge_into": 3}),
+            (5, [(712, 656, 15.5), (684, 656, 15.5), (658, 661, 15.5), (630, 671, 15.5), (600, 686, 15.5),
+                 (574, 705, 16)], [(1, 2)]),
+        ],
+        "far_tube_anchors": [   # solved by tools/solve_header_depth.py (dump_headers.py --far)
+            {0: 355.8, 1: 352.1, 2: 347.7, 3: 342.4, 4: 336.9, 5: 331.6},
+            {0: 331.3, 1: 331.6, 2: 332.0, 3: 332.5, 4: 332.8},
+            {0: 281.9, 1: 282.1, 2: 282.2, 3: 282.0, 4: 281.3, 5: 281.6, 6: 295.6},
+            {0: 366.3, 1: 365.9, 2: 366.0, 3: 366.1, 4: 366.1, 5: 366.3, 6: 367.0, 7: 366.3, 8: 365.3},
+            {0: 308.3, 1: 317.4, 2: 317.2, 3: 316.8, 4: 316.5, 5: 316.2},
+            {0: 305.3, 1: 307.8, 2: 311.0, 3: 315.2, 4: 311.8, 5: 305.5}],
         "merge_axis": (0.0, 50.3),                    # (inboard x per unit forward-up, elevation deg)
         "collector_dist": 35.0,                       # merge plenum centre above the ring plane
         "sensor_angle": 22.0,                         # O2 sensor shoulder angle: joint solve puts it at x ~-359
@@ -1783,9 +1812,26 @@ def build():
             q_ = Lc + d_ * t_
             zc_ = -(Rc.transposed() @ (q_ - Lc)).z
             return q_.y / MM, q_.z / MM - (150.0 + P["sump_depth"] - 40.0), zc_ / fpx / MM
+        def bp_cam(cam, u_, v_, xw):
+            """photo pixel -> root-frame (y, z, mm per px) on the plane x = xw (world x, mm)"""
+            Rk, Lk = Matrix(cam["rot"]), Vector(cam["loc"])
+            fk = cam["lens"] / 36.0 * cam["size"][0]
+            d_ = Rk @ Vector(((u_ - cam["size"][0] / 2) / fk, -(v_ - cam["size"][1] / 2) / fk, -1.0))
+            q_ = Lk + d_ * ((xw * MM - Lk.x) / d_.x)
+            return (q_.y / MM, q_.z / MM - (150.0 + P["sump_depth"] - 40.0),
+                    -(Rk.transposed() @ (q_ - Lk)).z / fk / MM)
+        # the far bank uses its own photo-04 traces when present (back-projected in world coordinates, then
+        # mapped into near-bank coordinates so the shared code below can apply W() as usual)
+        far = sx > 0 and bool(EX.get("far_traced_tubes"))
+        if far:
+            entries = [(ci_, 0.0, tr_, bl_) + tuple(rest_) for ci_, tr_, bl_, *rest_ in EX["far_traced_tubes"]]
+            anchors_tab = EX["far_tube_anchors"]
+        else:
+            entries = EX["traced_tubes"]
+            anchors_tab = EX["tube_anchors"]
         mb_b = MB()
         mb_f = MB()
-        for entry in EX["traced_tubes"]:
+        for entry in entries:
             ci, depth, trace, bell = entry[:4]
             opt = entry[4] if len(entry) > 4 else {}
             c = b["cyls"][ci]
@@ -1794,9 +1840,9 @@ def build():
             p0 = (-abs(px_), yc, pz_)
             p1 = (p0[0] - 0.843 * 35, yc, p0[2] - 0.537 * 35)
             pts3 = []
-            anc = dict(EX["tube_anchors"][ci])
-            anc.setdefault(-1, EX["port_x"])
-            anc.setdefault(len(trace), collector[0])
+            anc = dict(anchors_tab[ci])
+            anc.setdefault(-1, -EX["port_x"] if far else EX["port_x"])
+            anc.setdefault(len(trace), -collector[0] if far else collector[0])
             keys = sorted(anc)
             for j_, (X, Y, rz) in enumerate(trace):
                 k0 = max(k for k in keys if k <= j_)
@@ -1804,8 +1850,12 @@ def build():
                 t_ = 0.0 if k1 == k0 else (j_ - k0) / (k1 - k0)
                 t_ = t_ * t_ * (3 - 2 * t_)
                 dep = anc[k0] + (anc[k1] - anc[k0]) * t_
-                y_, z_, mmpx = zoom_to_3d(X, Y, dep)
-                pts3.append((dep, y_, z_, rz / zk * mmpx))
+                if far:                                  # photo-04 pixel, world x = +dep
+                    y_, z_, mmpx = bp_cam(EX["photo04_cam"], X, Y, dep)
+                    pts3.append((-dep, y_ - dy, z_, rz * mmpx))
+                else:
+                    y_, z_, mmpx = zoom_to_3d(X, Y, dep)
+                    pts3.append((dep, y_, z_, rz / zk * mmpx))
             # primary radius = the tube's traced radius over its first half (the plain primary); where the
             # trace widens (a merged 2-into-1 section) the curve's point radius swells to the traced value
             half = pts3[:max(2, len(pts3) // 2)]

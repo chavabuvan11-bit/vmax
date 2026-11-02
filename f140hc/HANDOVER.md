@@ -211,7 +211,8 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 - **Also matched since:** intake pods (side and top), cam cover (holes, front rise, filler,
   matte paint), coil boots and the pod sensor box.
 - **Still not right (priority order):**
-  1. **Far-bank headers** are mirrored from the near bank, but photo 16 shows a different route.
+  1. **Far-bank headers:** first version traced in photo 04 (see section 10). Refine it:
+     occlusion order, photo-20 envelope, taller rear arches. Older notes follow.
      The best far-bank sources:
      - photo 04: a clean +X side view, cropped at the front
      - photo 08: a close elevated front-3/4, the clearest
@@ -310,6 +311,17 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 - Commit messages end with the attribution lines given in the session's system reminder.
 
 ## 10. Recent changes (newest first)
+
+- **Far (+X) bank headers now come from their own traces** in side photo 04
+  (`P["exhaust"]["far_traced_tubes"]`, full-res pixels plus radius in px), back-projected through
+  the solved photo-04 camera (`photo04_cam`, joint-solve error 3.1 px).
+  - Depths are solved with `tools/dump_headers.py OUT --far` then `tools/solve_header_depth.py`
+    in far mode: envelope +282..+366 (not yet measured in photo 20), target gap 7 mm, no
+    occlusion list yet.
+  - **Layout:** front S-bends with the cyl-7 bellows; cyl 8 merges into cyl 9's fat descent and
+    cyl 11 into cyl 10's; cyl-12 rear bellows tube.
+  - **Still to do:** measure the far envelope in photo 20; add an occlusion list from photo 04;
+    the real rear arches reach higher, up to the cover lip.
 
 - **Cam cover:**
   - Walls are now ~8 mm thick. The old 1.7 mm walls plus the edge bevel left holes: the cam

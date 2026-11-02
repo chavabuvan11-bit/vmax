@@ -70,6 +70,15 @@ def main():
     D = json.load(open(sys.argv[1]))
     at = ray_fn(D["cam"], D["root_z"])
     tubes = {int(k): v for k, v in D["tubes"].items()}
+    far = bool(D.get("far"))
+    global X_OUT, X_IN
+    if far:                                  # far bank: mirrored envelope, no near-bank stacking/priors
+        X_OUT, X_IN = -X_OUT + 6.0, -X_IN   # far envelope not yet measured in photo 20: +366 / +282
+        global GAP
+        GAP = 7.0                            # fat merged sections: Blender's radius interpolation runs larger
+        OCC, HINT, BPRI = [], {}, {}
+    else:
+        OCC, HINT, BPRI = OCCLUSION, INIT_HINT, BELLOWS_PRIOR
     merged = {ci: t.get("merge_into") for ci, t in tubes.items()}
     col = np.array(next(t["collector"] for ci, t in tubes.items() if merged[ci] is None))
     cis = sorted(tubes)
@@ -78,16 +87,17 @@ def main():
     for ci in cis:
         t = tubes[ci]
         anc = {int(k): v for k, v in t["anchors"].items()}
-        anc.setdefault(-1, -292.0); anc.setdefault(len(t["uv"]), col[0])
+        anc.setdefault(-1, 292.0 if far else -292.0); anc.setdefault(len(t["uv"]), col[0])
         keys = sorted(anc)
         for j in range(len(t["uv"])):
             k0 = max(k for k in keys if k <= j); k1 = min(k for k in keys if k >= j)
             s = 0 if k1 == k0 else (j - k0) / (k1 - k0)
             idx[(ci, j)] = len(x0)
-            if ci in INIT_HINT and len(INIT_HINT[ci]) == len(t["uv"]):
-                x0.append(float(INIT_HINT[ci][j]))
+            if ci in HINT and len(HINT[ci]) == len(t["uv"]):
+                x0.append(float(HINT[ci][j]))
             else:
-                x0.append(float(np.clip(anc[k0] + (anc[k1] - anc[k0]) * s, X_OUT + 2, X_IN - 2)))
+                lo_, hi_ = sorted((X_OUT, X_IN))
+                x0.append(float(np.clip(anc[k0] + (anc[k1] - anc[k0]) * s, lo_ + 2, hi_ - 2)))
     x0 = np.array(x0)
 
     def nctrl(ci):
@@ -122,12 +132,13 @@ def main():
                 res.append((xs[-1] - col[0]) * 0.25)
                 res.append((xs[-2] - col[0]) * 0.1)
             res += list(np.diff(xs, 2) * 0.3)
-            res += list(np.maximum(0, X_OUT - xs) * 3.0)
-            res += list(np.maximum(0, xs - X_IN) * 3.0)
-            if ci in BELLOWS_PRIOR:
+            lo_, hi_ = sorted((X_OUT, X_IN))
+            res += list(np.maximum(0, lo_ - xs) * 3.0)
+            res += list(np.maximum(0, xs - hi_) * 3.0)
+            if ci in BPRI:
                 i0, i1 = tubes[ci]["bell"][0]
-                res.append(((xs[i0] + xs[i1]) / 2 - BELLOWS_PRIOR[ci]) * 0.2)
-        for fc, fj, bc, bj, m in OCCLUSION:
+                res.append(((xs[i0] + xs[i1]) / 2 - BPRI[ci]) * 0.2)
+        for fc, fj, bc, bj, m in OCC:
             if fc in tubes and bc in tubes:
                 xf = np.mean([x[idx[(fc, j)]] for j in fj if (fc, j) in idx])
                 xb = np.mean([x[idx[(bc, j)]] for j in bj if (bc, j) in idx])
