@@ -178,7 +178,12 @@ P = {
     "gearbox": {"half_width": 175.0, "rear_y": 1340.0, "centre_z": 33.0, "height": 326.0},       # top of the front casting between the banks
     # front accessories: (x, z) of the pulley centre vs crank axis, pulley r, body r, body length
     # front photo 11, scaled with the cam cover as the ruler (EST +-10%)
-    "crank_pulley_r": 57.0,
+    "crank_pulley_r": 72.0,                       # front photo 11: 145 mm across
+    # front casting outline (x, z) traced from front photo 11 (crank centre origin, 0.84 mm/px).
+    # NB the alternator measures z 81 here but z 46 in side photo 13: one ruler is off (see HANDOVER).
+    "front_casting": [(-259, 204), (-267, 179), (-250, 100), (-238, 20), (-223, -101), (-122, -112),
+                      (0, -113), (102, -100), (200, -40), (225, 60), (237, 129), (250, 207), (74, 311),
+                      (0, 238), (-88, 311)],
     # belt order after the crank, CCW seen from the front; -1 = belt runs over the back of an idler
     "belt_route": [("ac_compressor", 1), ("idler_upper", 1), ("alternator", 1), ("idler_lower", -1),
                    ("water_pump", 1)],
@@ -1198,12 +1203,8 @@ def build():
     # front casting: V-shield from the heads down to the dry sump (front photo 11)
     def bank_pt(bi, xl, zl):
         return rot_xz(xl, zl, g["banks"][bi]["gamma"])
-    sump_bot = cb - P["sump_depth"]
-    tc_outline = [bank_pt(0, -hw, deck + hh), bank_pt(0, hw, deck + hh), (0.0, P["front_valley_z"]),
-                  bank_pt(1, -hw, deck + hh), bank_pt(1, hw, deck + hh), bank_pt(1, hw, deck),
-                  (215.0, 60.0), (165.0, -70.0), (125.0, sump_bot), (-125.0, sump_bot), (-165.0, -70.0),
-                  (-215.0, 60.0), bank_pt(0, -hw, deck)]
-    tc_c = (0.0, 110.0)
+    tc_outline = [tuple(map(float, p_)) for p_ in P["front_casting"]]
+    tc_c = (0.0, 100.0)
 
     def shrink(poly, k):
         return [(tc_c[0] + (x - tc_c[0]) * k, tc_c[1] + (z - tc_c[1]) * k) for x, z in poly]

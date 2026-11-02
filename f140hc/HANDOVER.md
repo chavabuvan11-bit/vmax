@@ -211,6 +211,14 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
     0–3° (as `solve_camera_constrained.py` does), then fit the timing-cover outline and the
     accessory positions.
   - Pulleys are now polished aluminium. Before, the crank pulley used the black DLC material.
+  - **Done since:** the front casting outline is traced from photo 11 (`P["front_casting"]`,
+    crank-centre origin, 0.84 mm/px), and the crank pulley radius is 72 (145 mm across, from
+    the same photo).
+  - **Open conflict:** photo 11 puts the alternator 81 mm above the crank; side photo 13 gives
+    46 mm. Both cameras are near-orthographic, so one of the rulers is off: either the front
+    photo's 0.84 mm/px (from the cover half-width) or the side photo's z origin (the cover
+    bottom). The model keeps 46 because photo 13 is the focus view. Resolve this with a
+    third view (video frames 29–33 s or photo 17) before changing anything.
 - **After this section:** the front (timing cover shape, coolant manifold, belt detail), the
   intake pods (the user said to deprioritise them earlier), the gearbox, mufflers and
   tailpipes, and the +X side.
