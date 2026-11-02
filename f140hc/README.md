@@ -9,25 +9,23 @@ and 48 valve springs all move correctly against each other.
 
 ## Status, honestly
 
-This is a **dimensionally grounded, mechanically correct base**. It is not yet a 1:1
-replica of the real engine's appearance. The internals are built on the published
-geometry: bore, stroke, bank angle, and a firing order that fits the crank. The
-castings are blocked in from estimates: block, heads, cam covers, timing cover,
-plenum, exhaust and gearbox. Making them look like the real parts needs reference
-images and part diagrams, listed below. Nobody outside Ferrari has the CAD, and that
-includes the paid marketplace models. Those are artists working from photos.
+The internals are mechanically correct. The exterior is being matched part by part to Amalgam's
+1:4 replica (built from Ferrari's CAD data) and its reveal video. The method: several photos per
+part, solved camera positions for each photo, triangulated landmarks, and overlays against the
+real photos. It is not yet 1:1. **[HANDOVER.md](HANDOVER.md) has the full status, evidence and
+next steps.**
 
 | Area | State |
 |---|---|
-| Crank, rods, pistons | Working slider-crank kinematics, checked to 0.0001 mm |
-| Cams, followers, valves, springs | Working. Lobes are cut from the same lift law that drives the valves |
+| Crank, rods, pistons, cams, valves, springs | Working, checked by `verify.py` (6 checks) |
 | Firing order | 1-7-5-11-3-9-6-12-2-8-4-10, with 65°/55° alternating intervals |
-| Block, heads, cam covers | Simplified castings with real bores, chambers, ports and cam galleries |
-| Timing chains | Placeholder routing (static) |
-| Intake plenum / SP3 carbon airboxes | Placeholder |
-| Exhaust | Placeholder routing |
-| Gearbox (7-speed DCT) | Placeholder box |
-| Fasteners | 247, counts and positions estimated |
+| Cam covers, heads | Measured from front, side and top photos; bolting lip, coil boots, filler cap |
+| Carbon intake pods | Measured plan and height profiles; cross-section still approximate |
+| Near-side exhaust | Catalyst dome, oval canister, clamp and O2 sensor measured and triangulated; header loops close but not final |
+| Alternator, pumps, differential cover | Traced from the side photo; castings simplified |
+| Front casting and belt drive | Serpentine belt routed correctly; casting shape approximate |
+| Gearbox | Envelope, rib lattice and differential cover; real case shape still to do |
+| Common sense | `tools/sanity.py`: no floating parts, no loose pipe ends, every bolt seated, belt on every pulley |
 
 ## Run it
 
@@ -50,10 +48,11 @@ Auto Run Python Scripts.
 blender -b -P f140hc/verify.py -- --render renders/
 ```
 
-`verify.py` builds the engine, steps through a full cycle and checks five things.
+`verify.py` builds the engine, steps through a full cycle and checks six things.
 Every driver must be a simple expression. Rod big-ends must stay on the crankpins.
 TDC and BDC heights must be exact. Valve lift must match the cam lobe under the
-follower. Valves must never touch the pistons. It exits non-zero on failure.
+follower. Valves must never touch the pistons, and piston skirts must clear the crank
+counterweights. It exits non-zero on failure. `tools/sanity.py` runs the common-sense checks.
 
 ## The numbers
 
