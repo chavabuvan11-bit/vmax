@@ -160,16 +160,16 @@ P = {
         # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
         # front dome (video frames 20-22 s, photos 16/08 mirrored, side photo 13): an ellipsoidal
         # cap as wide as the canister, ending ~150 mm ahead of the front seam
-        "cat_dome": {"y_seam": 449.0, "length": 150.0, "r": 97.0, "zc": -17.0, "rise": 12.0},
-        "cat_sections": [(449, 80, -114), (470, 80, -112),
-                         (517, 81, -95), (576, 81, -108), (639, 82, -110), (687, 79, -112), (712, 49, -116),
-                         (760, 10, -122), (809, -17, -127), (850, -31, -131), (883, -41, -133),
-                         (912, -49, -135), (1000, -49, -137)],
+        "cat_dome": {"y_seam": 449.0, "length": 150.0, "r": 97.0, "zc": -2.0, "rise": 12.0},   # +15 mm (photo 13 recheck)
+        "cat_sections": [(449, 95, -99), (470, 95, -97),
+                         (517, 96, -80), (576, 96, -93), (639, 97, -95), (687, 94, -97), (712, 64, -101),
+                         (760, 25, -107), (809, -2, -112), (850, -16, -116), (883, -26, -118),
+                         (912, -34, -120), (1000, -34, -122)],
         "cat_beads": [449.0, 576.0, 687.0],
         # plan width vs height: top photo 20 shows the dome as round (outer edge -414 at y 410..460)
         # but the canister behind it narrower (outer -390 at y 500..560): an oval can, 0.74 as wide.
         "cat_oval": [(459.0, 1.0), (500.0, 0.74), (690.0, 0.74), (760.0, 0.9), (1000.0, 1.0)],
-        "sensor": (549.0, 82.0), "slip_joint": (916.0, 960.0),
+        "sensor": (549.0, 97.0), "slip_joint": (916.0, 960.0),
         "muffler_y": (1402.0, 1553.0), "muffler_x_span": (14.0, 340.0),
         "muffler_x": 220.0, "muffler_z": 120.0, "muffler_h": 210.0,
         "outlet_x": (120.0, 225.0),
