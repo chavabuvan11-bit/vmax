@@ -108,6 +108,8 @@ P = {
     "crankcase_top": 105.0,
     "sump_depth": 40.0,            # dry-sump pan below crankcase
     "edge_bevel_mm": 1.5,          # rounded edges on castings (photorealism)
+    "hdri_rot_deg": 0.0,           # studio HDRI orientation (env F140_HDRI_ROT overrides)
+    "hdri_strength": 1.0,
     # MEASURED (Amalgam 1:4 photos, top view 20 + side view 13): cam covers run ~7.2 bore
     # pitches, overhanging the block at the front to enclose the cam drive
     # side photo 13, coil centres found by segmentation: cover = 7.5 coil pitches; front coil
@@ -672,8 +674,8 @@ def build_materials():
         "ceramic": material("F140_Plug_Ceramic", (0.85, 0.85, 0.82), 0.0, 0.30),
         "bolt": material("F140_Bolt_Zinc", (0.70, 0.70, 0.66), 1.0, 0.30),
         "chain": material("F140_Chain", (0.20, 0.20, 0.21), 1.0, 0.30),
-        "magnesium": material("F140_Gearbox_Cast", (0.58, 0.58, 0.57), 1.0, 0.55, cast=0.35),
-        "polished": material("F140_Stainless_Polished", (0.82, 0.82, 0.84), 1.0, 0.19),
+        "magnesium": material("F140_Gearbox_Cast", (0.46, 0.46, 0.45), 1.0, 0.55, cast=0.35),   # photo 13: diff cover mean 135 vs 173
+        "polished": material("F140_Stainless_Polished", (0.78, 0.78, 0.80), 1.0, 0.14),
         "bellows": material("F140_Bellows", (0.72, 0.72, 0.74), 1.0, 0.20),
         "envelope": material("F140_Envelope", (0.2, 0.6, 1.0), 0.0, 0.5, alpha=0.15),
     }
@@ -682,8 +684,9 @@ def build_materials():
 # ---------------------------------------------------------------------------------------
 # 4. SCENE PLUMBING
 # ---------------------------------------------------------------------------------------
-def setup_hdri(scn, path, strength=1.0, backdrop=(0.60, 0.60, 0.62)):
-    """Light and reflect with an HDRI; the camera sees a plain studio-grey backdrop."""
+def setup_hdri(scn, path, strength=1.0, backdrop=(0.60, 0.60, 0.62), rot_deg=0.0):
+    """Light and reflect with an HDRI (rotated rot_deg about Z); the camera sees a plain studio-grey
+    backdrop."""
     w = scn.world
     w.use_nodes = True
     nt = w.node_tree
@@ -691,6 +694,12 @@ def setup_hdri(scn, path, strength=1.0, backdrop=(0.60, 0.60, 0.62)):
     out = nt.nodes.new("ShaderNodeOutputWorld")
     env = nt.nodes.new("ShaderNodeTexEnvironment")
     env.image = bpy.data.images.load(path, check_existing=True)
+    if rot_deg:
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Rotation"].default_value[2] = radians(rot_deg)
+        nt.links.new(tc.outputs["Generated"], mp.inputs["Vector"])
+        nt.links.new(mp.outputs["Vector"], env.inputs["Vector"])
     bg = nt.nodes.new("ShaderNodeBackground")
     bg.inputs[1].default_value = strength
     bg2 = nt.nodes.new("ShaderNodeBackground")
@@ -2016,7 +2025,8 @@ def build():
                 pass
     hdr = os.environ.get("F140_HDRI")
     if hdr and os.path.exists(hdr):
-        setup_hdri(scn, hdr)
+        setup_hdri(scn, hdr, strength=float(os.environ.get("F140_HDRI_STRENGTH", P["hdri_strength"])),
+                   rot_deg=float(os.environ.get("F140_HDRI_ROT", P["hdri_rot_deg"])))
         for nm in ("Key", "Fill", "Rim"):
             bpy.data.lights[f"F140HC_{nm}"].energy *= 0.35
     bpy.data.collections.remove(c_tmp)

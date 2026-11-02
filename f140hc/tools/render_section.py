@@ -16,13 +16,20 @@ cam.matrix_world = Matrix.Translation(Vector(c["loc"])) @ Matrix(c["rot"]).to_4x
 cam.data.lens = c["lens"]; cam.data.sensor_width = 36.0; cam.data.sensor_fit = 'HORIZONTAL'
 cam.data.clip_end = 100.0
 ctrl = bpy.data.objects["F140HC_CONTROL"]; ctrl["cutaway"] = 0; ctrl.update_tag()
+key = os.environ.get("F140_SOFTBOX")          # "x,y,z,watts,size" in metres: extra overhead softbox
+if key:
+    kx, ky, kz, kw, ks = map(float, key.split(","))
+    ld = bpy.data.lights.new("F140HC_Softbox", 'AREA'); ld.energy = kw; ld.size = ks
+    lo = bpy.data.objects.new("F140HC_Softbox", ld); bpy.context.scene.collection.objects.link(lo)
+    lo.location = (kx, ky, kz)
+    tc = lo.constraints.new('TRACK_TO'); tc.target = bpy.data.objects["F140HC_ROOT"]
 for nm in ("Light", "F140HC_Floor"):
     if nm in bpy.data.objects: bpy.data.objects[nm].hide_render = True
 scn = bpy.context.scene
 scn.render.engine = 'CYCLES'; scn.cycles.device = 'CPU'; scn.cycles.samples = spp
 scn.cycles.use_denoising = True
 scn.view_settings.view_transform = 'AgX'
-try: scn.view_settings.look = 'AgX - Medium High Contrast'
+try: scn.view_settings.look = os.environ.get('F140_LOOK', 'AgX - Medium High Contrast')
 except Exception: pass
 scn.render.resolution_x, scn.render.resolution_y = 1800, 1200
 scn.render.use_border = True; scn.render.use_crop_to_border = True
