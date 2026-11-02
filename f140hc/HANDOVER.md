@@ -158,6 +158,8 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 
 ## 7. Status of the focus section
 
+- **Catalyst height:** raised 15 mm after a re-check against side photo 13. Its top now
+  matches within about 2 px.
 - **Good, and agreeing across views:**
   - catalyst shape (dome, waist, oval canister, seams, oxygen sensor on the outboard shoulder,
     slip joint)
@@ -188,12 +190,16 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
          from below-front.
        - The rear three merge behind, then a pipe with bellows runs forward, arches up and
          drops into the clamp from above-rear.
-  2. **Block, head side and lower crankcase detail** behind the headers: ribs, bosses, ports,
-     brackets, the black bracket near the bellhousing, oil lines and fittings.
+  2. **Block, head side and lower crankcase detail** behind the headers.
+     - **Partly done:** the outboard barrel face now has vertical ribs, a head-joint rail,
+       water bosses and head-bolt bosses (`F140HC_BlockSideDetail_*`).
+     - **Still to do:** the black bracket near the bellhousing, oil lines and fittings, and
+       exhaust port flange detail.
   3. **Oil and water pump castings:** currently simplified boxes and cylinders. Use photos 13,
      17 and 08 plus video frames 19–22 s.
-  4. **Gearbox:** still a placeholder box apart from the differential cover. Use photos 14, 15,
-     07, 12 and 20.
+  4. **Gearbox:** a box with an X-lattice of stiffening ribs and the differential cover.
+     **Still to do:** the real case shape from photos 14, 15, 07, 12 and 20 (stepped
+     housings, finned coolers at the rear sides, hydraulic unit, shift actuator).
   5. **Materials:** cast textures exist; the polished steel is roughness 0.15. Compare under
      both a dark and a light HDRI, since the video was shot on black.
 - **After this section:** the front (timing cover shape, coolant manifold, belt detail), the
