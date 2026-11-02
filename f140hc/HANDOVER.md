@@ -208,6 +208,8 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
   - belt
 - **Checks:** verify, sanity (now including CLASH) and the photo 13 crop comparison all pass.
   Tube widths were confirmed by ray-casting.
+- **Also matched since:** intake pods (side and top), cam cover (holes, front rise, filler,
+  matte paint), coil boots and the pod sensor box.
 - **Still not right (priority order):**
   1. **Far-bank headers** are mirrored from the near bank, but photo 16 shows a different route.
      The best far-bank sources:
@@ -216,19 +218,20 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
      - photo 16
      - video orbit frames 54–60 s: +X side views
      Photo 08 suggests the topology matches the near bank (front tube drops into a bellows,
-     rear arches merge, rear bellows tube); the routing details differ.
-     Trace photo 16 the same way: solve its camera with low features, back-project at depth, then
-     run the depth solver with the far bank's own traces.
-  2. **Head exhaust face** between the cover lip and the tubes reads darker than the photo,
-     mostly because of lighting (overhang shadow). Try a large soft top light or a brighter
-     HDRI rotation before touching materials.
-  3. **Gearbox case behind the differential cover:** the real one is a ribbed casting with
-     bosses (photo 13 u 230–400). The model is still a box with an X-rib.
-  4. **Merge plenum shape:** the real fat pipes flare straight into the ring. The model uses a
-     domed cap.
-  5. **Joint-solve vertical scale:** k_v reads 0.93–0.98 across priors. A geometric version
-     (deck + head height −7 mm, head half-width −4 mm) fits photo 11 better (2.3 px against
-     5 px), but that is within estimate noise, so the model has not been changed.
+     rear arches merge, rear bellows tube); the routing details differ. Method: trace photo 08
+     or 16 through the `ba_photo16` camera (now consistent with the model), then run the depth
+     solver with a photo-20 envelope for x > 0.
+  2. **Front section:** photo 11's joint-solve camera is degenerate (six near-coplanar points).
+     Add pulley centres, the coolant manifold hub and the pod tips, then trace the timing cover.
+  3. **Gearbox case** behind the differential cover: the real one is a ribbed casting (photo 13
+     u 230–400, photos 14/15/07). The model is still a box with an X-rib.
+  4. **Hidden clash:** the timing chain runs through the solid head front (see section 10).
+  5. **Smaller items:**
+     - throttle body casting and actuator detail
+     - pod side fittings
+     - merge plenum (the real fat pipes flare straight into the ring)
+     - carbon weave too visible
+     - studio backdrop gradient
 - **Front section** (started, needs its own pass):
   - `tools/fit_front.py` now rejects solutions with points behind the camera and requires the
     camera on the front side. It still lands at about 25 px of error, and the render comes out
