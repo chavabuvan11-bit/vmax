@@ -1,8 +1,97 @@
-{"views": {"photo13": {"camera": "cameras/photo13_side_camera.json", "size": [1800, 1200]},
-           "video114": {"camera": "cameras/video_011.4s_topdown_camera.json", "size": [1920, 1080]}},
+{
+ "views": {
+  "photo13": {
+   "camera": "cameras/photo13_side_camera.json",
+   "size": [
+    1800,
+    1200
+   ]
+  },
+  "video114": {
+   "camera": "cameras/video_011.4s_topdown_camera.json",
+   "size": [
+    1920,
+    1080
+   ]
+  },
+  "photo16": {
+   "camera": "cameras/photo16_otherbank_camera.json",
+   "size": [
+    1800,
+    1200
+   ],
+   "mirror": {
+    "dy_mm": -23.0
+   }
+  }
+ },
  "landmarks": {
-   "rear_bellows":  {"photo13": [662, 685],  "video114": [265, 600]},
-   "o2_sensor":     {"photo13": [590, 770],  "video114": [160, 665]},
-   "clamp_centre":  {"photo13": [905, 830],  "video114": [400, 850]},
-   "front_bellows": {"photo13": [1062, 830], "video114": [675, 985]}
- }}
+  "rear_bellows": {
+   "photo13": [
+    662,
+    685
+   ],
+   "video114": [
+    265,
+    600
+   ],
+   "photo16": [
+    1247,
+    487
+   ]
+  },
+  "o2_sensor": {
+   "photo13": [
+    590,
+    770
+   ],
+   "video114": [
+    160,
+    665
+   ],
+   "photo16": [
+    1393,
+    600
+   ]
+  },
+  "clamp_centre": {
+   "photo13": [
+    905,
+    830
+   ],
+   "video114": [
+    400,
+    850
+   ],
+   "photo16": [
+    1053,
+    800
+   ]
+  },
+  "front_bellows": {
+   "photo13": [
+    1062,
+    830
+   ],
+   "video114": [
+    675,
+    985
+   ],
+   "photo16": [
+    667,
+    747
+   ]
+  },
+  "arch_top": {
+   "photo13": [
+    850,
+    580
+   ],
+   "photo16": [
+    1133,
+    273
+   ]
+  }
+ },
+ "primary": "photo13"
+}

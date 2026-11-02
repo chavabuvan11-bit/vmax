@@ -145,16 +145,16 @@ P = {
         "port_x": -292.0, "sweep_x": -372.0, "loop_bulge": 18.0,
         # triangulated landmarks (tools/triangulate.py, reference_data/picks_headers.json): photo 13 +
         # video frame 11.4 s. clamp (-366, 327, 59); rear bellows x -331; front bellows x -307
-        "clamp_pos": (-366.0, 327.0, 59.0),
+        "clamp_pos": (-360.0, 323.0, 55.0),          # mean of the 2-view and side-ray solves
         # depth anchors per traced tube {trace index: x}; port at -292, end at the collector
-        "tube_anchors": [{0: -305.0, 4: -307.0, 5: -307.0, 7: -335.0},
+        "tube_anchors": [{0: -304.0, 4: -304.0, 5: -304.0, 7: -335.0},
                          {3: -335.0, 6: -340.0, 9: -345.0},
                          {3: -335.0, 6: -345.0, 9: -350.0},
                          {2: -340.0},
-                         {3: -330.0, 6: -345.0},
-                         {1: -331.0, 2: -331.0, 4: -340.0}],
+                         {1: -350.0, 2: -390.0, 3: -405.0, 4: -395.0, 6: -372.0},   # arch top ~-405
+                         {1: -322.0, 2: -322.0, 4: -335.0}],
         "neck_out": 0.62,                             # outboard component of the inlet axis
-        "sensor_angle": 30.0,                         # O2 sensor on the upper-outboard shoulder (deg)
+        "sensor_angle": 15.0,                         # O2 sensor on the upper-outboard shoulder (deg)
         "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
         "cat_x": 320.0,
         # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
