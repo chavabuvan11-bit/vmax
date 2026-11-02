@@ -1105,6 +1105,19 @@ def build():
         cutter = cut.finish("F140HC_cut_head", c_tmp, [], parent=be)
         bake_boolean(head, cutter)
         heads.append(head)
+        # block and head side detail (side photo 13, video 19-22 s): vertical ribs between the
+        # cylinders on the outboard barrel face, a raised rail along the head joint, and bosses
+        o_ = -inb
+        mb = MB()
+        for c in b["cyls"]:
+            for dyr in (-P["bore_pitch"] / 2, P["bore_pitch"] / 2):
+                mb.rbox(o_ * (bw + 3.0), c["y"] + dyr, deck - 70.0, 8.0, 12.0, 120.0, 2.5, 2)
+            mb.cyl(9.0, -6.0, 6.0, M=T(o_ * (bw + 2.0), c["y"], deck - 40.0) @ RY(90), seg=20)   # water boss
+        mb.rbox(o_ * (bw + 4.0), (hf + hr) / 2, deck - 6.0, 10.0, hr - hf - 40.0, 14.0, 3.0, 2)  # joint rail
+        for j in range(7):                                                      # head bolt bosses on the face
+            yb = b["cyls"][0]["y"] - P["bore_pitch"] / 2 + j * P["bore_pitch"]
+            mb.cyl(8.0, -5.0, 5.0, M=T(o_ * (hw + 2.0), yb, deck + 22.0) @ RY(90), seg=16)
+        mb.finish(f"F140HC_BlockSideDetail_{b['label']}", c_house, [M["block_cast"]], parent=be)
         # cam towers and bearing caps
         mb = MB()
         for kind, v in g["valves"].items():
