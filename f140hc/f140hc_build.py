@@ -107,6 +107,7 @@ P = {
     "crankcase_bottom": -110.0,    # below crank axis
     "crankcase_top": 105.0,
     "sump_depth": 40.0,            # dry-sump pan below crankcase
+    "edge_bevel_mm": 1.5,          # rounded edges on castings (photorealism)
     # MEASURED (Amalgam 1:4 photos, top view 20 + side view 13): cam covers run ~7.2 bore
     # pitches, overhanging the block at the front to enclose the cam drive
     # side photo 13, coil centres found by segmentation: cover = 7.5 coil pitches; front coil
@@ -1744,9 +1745,6 @@ def build():
         for y in rows:
             for sx in (-1, 1):
                 bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 3.0 * hw / 82.0), y, ztop), parent=be)
-        for y in (hf + 14.0, hr - 14.0):
-            for sx in (-1, 1):
-                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 40.0), y, ztop), parent=be)
         o = -b["inb"]
         for y in rows:                                    # bolts in the top-edge bosses
             bolt(f"CamCover_{b['label']}", 6, 20.0, (o * 52.0 * hw / 82.0, y, deck + hh + P["cover_height"] + 4.0),
@@ -1844,6 +1842,23 @@ def build():
     except Exception:
         pass
 
+    # soften every hard casting edge: real cast and machined parts never have perfectly sharp edges
+    for coll_ in (c_house, c_drive, c_ind):
+        for ob in coll_.all_objects:
+            if ob.type != 'MESH' or "_Bolt_" in ob.name or ob.name.endswith("_pulley"):
+                continue
+            if any(k in ob.name for k in ("Valve", "Spring", "Finger", "Seat_", "Primary", "Coils", "SparkPlugs")):
+                continue
+            bev = ob.modifiers.new("EdgeSoften", 'BEVEL')
+            bev.width = P["edge_bevel_mm"] * MM
+            bev.segments = 2
+            bev.limit_method = 'ANGLE'
+            bev.angle_limit = radians(40)
+            try:
+                bev.harden_normals = False
+                bev.miter_outer = 'MITER_ARC'
+            except Exception:
+                pass
     hdr = os.environ.get("F140_HDRI")
     if hdr and os.path.exists(hdr):
         setup_hdri(scn, hdr)
