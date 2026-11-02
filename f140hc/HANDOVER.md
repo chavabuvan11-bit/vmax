@@ -45,9 +45,12 @@ Section comparison: render the model through the solved photo-13 camera and stac
 photo crop.
 
 ```bash
-f140_work/bpyenv/bin/python -I f140hc/tools/render_section.py f140hc/reference_data/cameras/photo13_side_camera.json out.png 596 1196 48
+F140_HDRI=$F140_HDRI f140_work/bpyenv/bin/python -I f140hc/tools/render_section.py f140hc/reference_data/cameras/ba_photo13_camera.json out.png 500 1200 48
 python3 f140hc/tools/compare_section.py $F140_REFS/amalgam/13.jpg out.png 596 1196 cmp.jpg
 ```
+
+Always set `F140_HDRI`. Without it the render uses the fallback lights and the polished steel
+reads dark, which is misleading.
 
 Other views: `tools/fit_view.py SPEC.json OUTDIR` solves that photo's camera from the picked
 points, renders the model from it, and writes `compare.jpg` (photo with pick markers | render).
@@ -132,6 +135,29 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
    photo. That gave the oval catalyst canister and the header depths.
 5. **Tracing a photo crop** (`compare_section.py` / `render_section.py`) for like-for-like
    checks.
+6. **Back-projection through the solved camera:** this is now the default for anything traced in
+   photo 13. Pick pixels, then intersect each pixel's ray with a plane at the part's depth
+   (`zoom_to_3d` in the build; a 10-line numpy version is in the next item). The old flat mapping
+   (y = 605 − (u − 513)·0.730) is only right at the coil plane.
+   ```python
+   R, L, f = cam["rot"], cam["loc"]*1000, cam["lens"]/36*1800
+   d = R @ [(u-900)/f, -(v-600)/f, -1];  t = (x - L[0]) / d[0];  y, z = (L + d*t)[1], (L + d*t)[2] - 150
+   ```
+7. **Header depth solver** (`tools/dump_headers.py` → `tools/solve_header_depth.py` → paste into
+   `P["exhaust"]["tube_anchors"]`):
+   - Every traced point slides only along its photo-13 ray.
+   - Tubes keep a surface gap of at least 3 mm, measured on the real order-4 NURBS curve with
+     per-point radius.
+   - Centrelines stay inside the top-photo-20 envelope (−360 ≤ x ≤ −282).
+   - `OCCLUSION` encodes which tube hides which in photo 13.
+   - `INIT_HINT` gives a starting layout that already respects the stacking order. Without it
+     the solver lands in local minima.
+8. **Ray-cast picking** (pattern in HANDOVER section 8): `scene.ray_cast` from the solved camera
+   through a pixel tells you which part and depth the render shows there. It settled the
+   tube-width question in seconds. Hide `hide_render` objects first, or the Amalgam envelope
+   swallows every ray.
+9. **Clash check:** `sanity.py` CLASH flags interpenetrating primaries using BVH overlap. It
+   exempts both tube ends, so the collector and 2-into-1 merges are allowed.
 
 ## 6. Evidence behind the main numbers (`P` table)
 
@@ -146,71 +172,56 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
     it.
 - **Front accessories** (front photo 11, cover ruler): see `P["accessories"]` and
   `P["belt_route"]`.
-- **Exhaust** (`P["exhaust"]`, near-bank coordinates):
-  - Catalyst: dome length 150 mm, r 97, seam at y = 449; the canister is an oval at 0.74 of its
-    height in plan (top photo 20).
-  - Clamp: on the dome's upper-front face, axis forward/up/outboard (`neck_out` 0.62).
-  - Header tubes: traced in the photo-13 zoom (origin u = 560, v = 560, scale 2). Depth follows
-    the port → collector sweep (`port_x`, `sweep_x`, `loop_bulge`, `loop_tilt`).
-  - Mufflers: rear photos.
+- **Exhaust** (`P["exhaust"]`, near-bank coordinates). Everything below was re-derived through
+  `ba_photo13_camera.json`:
+  - **Layout:** 6 into 4 into 1. Cylinders 4 and 5 merge into a fat pipe (about 70 mm) at a
+    visible weld seam, and so do cylinders 2 and 3 (about 52 mm). Cylinders 1 and 6 arrive
+    separately through their flex bellows. All four pipes enter a short plenum on the V-band
+    ring. Sources: photo 13 at 2–3×, video frame 20.8 s.
+  - **Tubes:** each has its own traced diameter (36–46 mm). The merged sections swell through
+    per-point curve radius. The old 1.35× inflation is gone.
+  - **Bellows:** convolutions 60 mm OD, sleeves 44 mm OD, 7.2 mm pitch.
+  - **V-band ring:** 157 mm OD, seen exactly edge-on in photo 13, centre (−330, 347, 9). Its axis
+    has no x component and rises 50.3° forward and up. The T-bolt sits on the outboard rim. The
+    top-photo ring arc and the T-bolt nuts agree.
+  - **Catalyst:** about 170 mm tall (top z 65–75, bottom −99 to −108). Beads are at y 449, 507
+    and 682. The dome has r 87, centre −13, and drops toward its tip. The outlet pipe is 56 mm.
+  - **Near-bank bung:** a hex-socket plug, with no sensor fitted (photo 13). The far bank keeps
+    its sensor (photo 16).
+  - **The far bank is not a mirror of the near bank** (photo 16: its front primary arches up
+    first). The model still mirrors it. That's a known gap.
 - **Near-side details** (`P["near_side"]`): alternator sections, water pump, oil pump body, sump
   lobe and differential cover, all traced from photo 13.
 
 ## 7. Status of the focus section
 
-- **Rounded edges:** castings and housings carry a 1.5 mm angle-limited bevel modifier
-  (`P["edge_bevel_mm"]`) for realism. Bolts that sat in a cover end wall were removed
-  (`sanity.py` flagged them).
-- **Catalyst height:** raised 15 mm after a re-check against side photo 13. Its top now
-  matches within about 2 px.
-- **Good, and agreeing across views:**
-  - catalyst shape (dome, waist, oval canister, seams, oxygen sensor on the outboard shoulder,
-    slip joint)
-  - outlet pipe
-  - alternator position and appearance
-  - differential cover
-  - lower castings placement
-  - cam cover lip and bolts
-  - belt routing
-  - verify and sanity both PASS
-- **Not yet right (in priority order):**
-  1. **Header loops.**
-     - From photo 16 and the top-down video frame, the real primaries are long S-bends leaving
-       six separate ports, with lower loop parts that don't bulge far beyond the cover edge.
-     - **Partly done:** `tools/triangulate.py` plus `reference_data/picks_headers.json`
-       triangulated the clamp at (−366, 327, 59), the rear bellows at x −331 and the front
-       bellows at x −307. The O2 sensor came out within 15 mm of the model. The clamp is now
-       fixed at its triangulated position, and tube depths follow per-tube anchors
-       (`P["exhaust"]["tube_anchors"]`).
-     - **Still to do:** loop shapes in photo 16 read rounder than the real S-bends. Add more
-       triangulated landmarks along each loop (arch tops, loop bottoms, port flanges) to
-       `picks_headers.json` and turn them into anchors.
-     - **Fix: triangulate.** Pick the same landmarks (bellows centres, arch tops, loop bottoms,
-       port flanges) in photo 13, video 11.4 s and photo 16 (mirrored), using the solved
-       cameras. Triangulate them and run each tube through its 3D points.
-     - Real topology:
-       - The front three cylinders merge low, then a pipe with bellows rises into the clamp
-         from below-front.
-       - The rear three merge behind, then a pipe with bellows runs forward, arches up and
-         drops into the clamp from above-rear.
-  2. **Block, head side and lower crankcase detail** behind the headers.
-     - **Partly done:** the outboard barrel face now has vertical ribs, a head-joint rail,
-       water bosses and head-bolt bosses (`F140HC_BlockSideDetail_*`).
-     - **Still to do:** the black bracket near the bellhousing, oil lines and fittings, and
-       exhaust port flange detail.
-  3. **Oil and water pump castings:** rebuilt from a 2× zoom of photo 13.
-     - **Oil pump:** a long multi-stage cylinder (y 45–337, z −76, r 33) with stage joints, a
-       square flange, an outlet elbow down and out, fittings and a sensor.
-     - **Water pump:** a cast body with its round impeller cover facing outboard (r 52 at y −57,
-       z −66) and an angled pipe stub.
-     - **Still to do:** casting lobes and pipe runs. Use photos 13, 17 and 08 plus video frames
-       19–22 s.
-  4. **Gearbox:** a box with an X-lattice of stiffening ribs and the differential cover.
-     **Still to do:** the real case shape from photos 14, 15, 07, 12 and 20 (stepped
-     housings, finned coolers at the rear sides, hydraulic unit, shift actuator).
-  5. **Materials:** cast textures exist. The polished exhaust steel is roughness 0.19; with the
-     photo_studio_01 HDRI it gives the soft satin highlights of the Amalgam photos. The video
-     was shot on black, so compare under a dark HDRI as well.
+- **Good and checked against several views:**
+  - header layout, depths and diameters
+  - clamp
+  - catalyst silhouette
+  - oil and water pumps
+  - differential cover (bolt circle fitted to 0.2 px)
+  - brace rod
+  - port flanges
+  - alternator
+  - cam cover lip
+  - belt
+- **Checks:** verify, sanity (now including CLASH) and the photo 13 crop comparison all pass.
+  Tube widths were confirmed by ray-casting.
+- **Still not right (priority order):**
+  1. **Far-bank headers** are mirrored from the near bank, but photo 16 shows a different route.
+     Trace photo 16 the same way: solve its camera with low features, back-project at depth, then
+     run the depth solver with the far bank's own traces.
+  2. **Head exhaust face** between the cover lip and the tubes reads darker than the photo,
+     mostly because of lighting (overhang shadow). Try a large soft top light or a brighter
+     HDRI rotation before touching materials.
+  3. **Gearbox case behind the differential cover:** the real one is a ribbed casting with
+     bosses (photo 13 u 230–400). The model is still a box with an X-rib.
+  4. **Merge plenum shape:** the real fat pipes flare straight into the ring. The model uses a
+     domed cap.
+  5. **Joint-solve vertical scale:** k_v reads 0.93–0.98 across priors. A geometric version
+     (deck + head height −7 mm, head half-width −4 mm) fits photo 11 better (2.3 px against
+     5 px), but that is within estimate noise, so the model has not been changed.
 - **Front section** (started, needs its own pass):
   - `tools/fit_front.py` now rejects solutions with points behind the camera and requires the
     camera on the front side. It still lands at about 25 px of error, and the render comes out
@@ -264,6 +275,15 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
   just overwrite files.
 - Don't get around bot checks or hotlink protection (YouTube, FerrariChat, eBay, the hdmotori
   CDN). Original-upload URLs and plain requests are fine.
+- **Photo 13's lens is unobservable** from the current picks: the cost changes by 3% between 35
+  and 200 mm. An unconstrained solve chose 35 mm and tipped the camera to look up. That
+  inflated near parts by about 10% and drove a false "+15 mm" catalyst correction and a
+  1.35× tube scale. It is now pinned at 100 mm (studio macro). A look-down prior of 3.5°
+  comes from the stand-cup ellipses: their rim ratio is 0.13–0.19.
+- **Don't mirror photo 16 for near-bank tubes.** The banks are routed differently. Mirroring is
+  fine for the catalyst, clamp and bellows positions, but it gave a wrong −415 arch anchor.
+- **Brightness profiles across polished tubes lie:** reflections make dark bands inside the
+  silhouette. Ray-cast or look at the image instead.
 - Verify checks: mechanism errors under 0.01 mm, valve-to-piston clearance above 0
   (currently 1.06 mm), piston skirt to counterweight above 0 (3.0 mm).
 
@@ -273,6 +293,14 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 - Commit messages end with the attribution lines given in the session's system reminder.
 
 ## 10. Recent changes (newest first)
+
+- Catalyst re-traced through the solved camera (170 mm tall, outlet 56 mm, beads moved). The
+  oil pump, water pump, differential cover and brace rod were rebuilt from back-projected
+  photo-13 outlines.
+- Near-bank headers rebuilt (6 into 4 into 1, depth solver, traced diameters, 157 mm edge-on
+  V-band). Added the CLASH check: the old geometry had 8 interpenetrating tube pairs.
+- Joint solve: photo 13 lens pinned at 100 mm with a look-down prior. Cameras re-saved. The
+  joint solve takes `F140_FIX_LENS` to override the pin.
 
 - Carbon is now near-black with a clear coat (base roughness 0.22). The mufflers are satin
   polished.
