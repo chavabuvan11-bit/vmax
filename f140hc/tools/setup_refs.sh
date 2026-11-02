@@ -26,6 +26,6 @@ PY
 for n in studio_small_08 studio_small_09 photo_studio_01; do
   curl -sS --max-time 120 -o "$W/refs/hdri/${n}_2k.hdr" "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/${n}_2k.hdr"
 done
-echo "done. export F140_REFS=$W/refs ; F140_HDRI=$W/refs/hdri/studio_small_08_2k.hdr"
+echo "done. export F140_REFS=$W/refs ; F140_HDRI=$W/refs/hdri/photo_studio_01_2k.hdr"
 echo "video frames: ask the user to upload the reveal video, then:"
 echo "  for t in 11.4 21.4; do ffmpeg -v error -ss \$t -i VIDEO.mp4 -frames:v 1 -q:v 2 $W/refs/video/f_\$(printf %05.1f \$t).jpg; done"

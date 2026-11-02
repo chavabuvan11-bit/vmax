@@ -36,7 +36,7 @@ Setup in a fresh session (the cloud scratchpad does NOT persist):
 
 ```bash
 bash f140hc/tools/setup_refs.sh                      # creates ./f140_work (git-ignored)
-export F140_REFS=$PWD/f140_work/refs F140_HDRI=$PWD/f140_work/refs/hdri/studio_small_08_2k.hdr
+export F140_REFS=$PWD/f140_work/refs F140_HDRI=$PWD/f140_work/refs/hdri/photo_studio_01_2k.hdr
 f140_work/bpyenv/bin/python -I f140hc/verify.py       # must print PASS
 f140_work/bpyenv/bin/python -I f140hc/tools/sanity.py # must print SANITY: PASS
 ```
