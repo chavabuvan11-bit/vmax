@@ -1659,6 +1659,27 @@ def build():
     GB = P["gearbox"]
     end = GB["rear_y"]
     mb.box(0, (L + 125 + end) / 2, GB["centre_z"], 2 * GB["half_width"], end - L - 125, GB["height"])
+    # cast stiffening ribs: X-lattice panels on both side faces and the top (photos 14, 15, 20)
+    gx, gz, gh = GB["half_width"], GB["centre_z"], GB["height"]
+    y_a, y_b = L + 140.0, end - 15.0
+    npan = max(2, int((y_b - y_a) // 130))
+    pw = (y_b - y_a) / npan
+    for sxg in (-1, 1):
+        for i in range(npan):
+            yc_ = y_a + (i + 0.5) * pw
+            ang = math.atan2(gh - 30.0, pw)
+            for sgn in (-1, 1):
+                mb.box(0, 0, 0, 7.0, math.hypot(pw, gh - 30.0), 9.0,
+                       M=T(sxg * (gx + 3.0), yc_, gz) @ Matrix.Rotation(sgn * ang, 4, 'X'))
+            mb.box(sxg * (gx + 3.0), y_a + i * pw, gz, 7.0, 9.0, gh - 10.0)          # vertical rib
+        mb.box(sxg * (gx + 3.0), (y_a + y_b) / 2, gz + gh / 2 - 6.0, 7.0, y_b - y_a, 10.0)   # top rail
+        mb.box(sxg * (gx + 3.0), (y_a + y_b) / 2, gz - gh / 2 + 6.0, 7.0, y_b - y_a, 10.0)   # bottom rail
+    for i in range(npan):                                                       # top-face lattice
+        yc_ = y_a + (i + 0.5) * pw
+        ang = math.atan2(2 * gx - 30.0, pw)
+        for sgn in (-1, 1):
+            mb.box(0, 0, 0, 9.0, math.hypot(pw, 2 * gx - 30.0), 7.0,
+                   M=T(0, yc_, gz + gh / 2 + 3.0) @ Matrix.Rotation(sgn * ang, 4, 'Z'))
     mb.finish("F140HC_Gearbox_PLACEHOLDER", c_drive, [M["magnesium"]], parent=root)
 
     # ---------------- fasteners ----------------
