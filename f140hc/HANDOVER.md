@@ -301,6 +301,19 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 
 ## 10. Recent changes (newest first)
 
+- **Cam cover:**
+  - Walls are now ~8 mm thick. The old 1.7 mm walls plus the edge bevel left holes: the cam
+    towers showed through as a dark "seam", and the timing chain showed at the front.
+  - The lip step is softened.
+  - 14 mm cam-drive rise at the front (`P["cover_bulge"]`, module helper `cover_bulge()`), with a
+    deeper pocket under it.
+  - Figure-8 filler with a chrome surround and a handle tab.
+  - Matte crinkle red (no clear coat).
+  - Pod side: black sensor box with connector, and coil boots resized.
+  - **Known internal clash:** the timing chain's outer run (y ≈ −30) passes through the solid
+    head front and the cover's lip and side walls. It isn't visible. The real head is hollowed
+    for the cam drive.
+
 - **Intake pods rebuilt.**
   - Side profile traced in photo 13 through the solved camera: flange z 374, crest about 186 mm
     above it, nose at y −30.

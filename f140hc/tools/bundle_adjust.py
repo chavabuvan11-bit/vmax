@@ -43,7 +43,7 @@ def feat_near(kind, i):
     if kind == "filler":
         x, z = bank_to_root(o * 8.0, Z0 + HC + 13.0, gamma); return (x, min(ys) - 0.68 * PITCH, z)
     if kind == "flange_bolt":
-        x, z = bank_to_root(o * (HW - 3.0 * HW / 82.0), DECK + HH + 7.0 * HC / 42.0, gamma)
+        x, z = bank_to_root(o * (80.5 * HW / 82.0), DECK + HH + 6.0 * HC / 42.0, gamma)   # outboard lip bolt
         return (x, ys[0] - PITCH / 2 + i * PITCH, z)
     if kind == "cover_bottom_outer":       # i = y value
         x, z = bank_to_root(o * HW, Z0, gamma); return (x, i, z)

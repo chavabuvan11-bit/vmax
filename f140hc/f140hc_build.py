@@ -115,6 +115,9 @@ P = {
     # side photo 13, coil centres found by segmentation: cover = 7.5 coil pitches; front coil
     # sits 1.8 pitches behind the cover front, rear coil 0.7 pitches ahead of the cover rear
     "front_valley_z": 280.0,
+    # cam cover front: a gentle 10 mm rise over the cam drive (encloses the chain; the joint solve's
+    # filler residual says the cap sits ~10 mm higher than a flat cover would put it)
+    "cover_bulge": (20.0, 90.0, 14.0),
     # exhaust layout (mm, root frame; side photo 13 with the coil pitch as ruler, top photo 20
     # with the cam cover as ruler, rear photos 10 / 18). EST +-10%
     "exhaust": {
@@ -283,6 +286,7 @@ P = {
     "pod_horn_inner": 0.32,        # horn inner flank width, fraction of the plan width
     "pod_lid_h": 100.0,            # flat plenum lid height above the flange (rises into the nose)
     "pod_script_y": 290.0, "pod_script_size": 34.0,   # chrome script on each lid (top photo 20)
+    "pod_sensor_box": (604.0, 386.0, 118.0, 80.0),     # y, z centre, length, height (photo 13)
     "pod_undercut": 0.20,          # flange inset under the bulge, fraction of the plan width
     "tb_radius": 52.0,             # throttle body (side photo: ~104 mm across)
     "tb_offset_x": 210.0,          # top photo: 0.77 of cover half-width
@@ -313,6 +317,13 @@ COLL_NAME = "F140HC"
 # ---------------------------------------------------------------------------------------
 ROT_Z_TO_Y = Matrix.Rotation(-pi / 2, 4, 'X')    # maps local +Z onto +Y
 ROT_Z_TO_NY = Matrix.Rotation(pi / 2, 4, 'X')    # maps local +Z onto -Y
+
+
+def cover_bulge(y):
+    """extra height of the cam cover's front cam-drive bulge at y (mm)"""
+    yb0, yb1, bh = P["cover_bulge"]
+    t_ = min(1.0, max(0.0, (yb1 - y) / (yb1 - yb0)))
+    return bh * t_ * t_ * (3 - 2 * t_)
 
 
 def T(x, y, z):
@@ -688,7 +699,7 @@ def build_materials():
         "piston": material("F140_Piston_Forged", (0.72, 0.72, 0.74), 1.0, 0.35),
         "valve": material("F140_Valve_Steel", (0.62, 0.62, 0.64), 1.0, 0.20),
         "spring": material("F140_Spring_Steel", (0.08, 0.09, 0.12), 1.0, 0.35),
-        "rosso": material("F140_Rosso_Crinkle", (0.60, 0.0, 0.0), 0.0, 0.55, coat=0.3, wrinkle=0.25),
+        "rosso": material("F140_Rosso_Crinkle", (0.60, 0.0, 0.0), 0.0, 0.62, coat=0.0, wrinkle=0.4),   # matte crinkle (photo 13)
         "carbon": material("F140_Carbon", (0.01, 0.01, 0.012), 0.0, 0.22, coat=1.0, weave=True),
         "inconel": material("F140_Exhaust_Inconel", (0.36, 0.33, 0.30), 1.0, 0.42),
         "black": material("F140_Black_Plastic", (0.02, 0.02, 0.02), 0.0, 0.50),
@@ -1215,20 +1226,29 @@ def build():
         o = -inb                                        # outboard direction in bank-local x
         z0 = deck + hh
         # flat bolting lip along both lower edges (bolts sit on it: side photo 13, video 11.4 s)
-        prof = [(-82, 0), (82, 0), (82, 7), (77, 7), (75, 12), (74, 30), (70, 38), (62, 42), (-46, 42),
+        prof = [(-82, 0), (82, 0), (82, 6), (79.5, 6), (78, 8), (76, 11), (75, 14), (74, 30), (70, 38), (62, 42), (-46, 42),
                 (-62, 38), (-68, 12), (-70, 7), (-82, 7)]
         Hc = P["cover_height"]
         kx = hw / 82.0
         prof = [(o * x * kx, z * Hc / 42.0) for x, z in prof]
         Rend = 34.0
 
+        # cam-drive bulge at the front (photo 13: the front ~110 mm stand ~30 mm taller and carry the
+        # oil filler); it lifts the profile above the lip, blending out between y 40 and 72
+        bulge = cover_bulge
+
         def ring_at(y, d):
             k = (hw - Rend + sqrt(max(0.0, Rend ** 2 - (Rend - d) ** 2))) / hw
-            return [(x * k, y, z0 + z) for x, z in prof]
+            bz = bulge(y)
+            return [(x * k, y, z0 + z + bz * min(1.0, max(0.0, (z - 10.0) / (Hc - 10.0)))) for x, z in prof]
         sections = []
         for i in range(9):                                # rounded front end
             d = Rend * (1 - cos((pi / 2) * i / 8))
             sections.append(ring_at(hf + d, d))
+        for yb_ in (P["cover_bulge"][0] - 20.0, P["cover_bulge"][0], (P["cover_bulge"][0] + P["cover_bulge"][1]) / 2,
+                    P["cover_bulge"][1]):
+            if hf + Rend < yb_ < hr - Rend:               # bulge transition sections
+                sections.append(ring_at(yb_, Rend))
         for i in range(8, -1, -1):                        # rounded rear end
             d = Rend * (1 - cos((pi / 2) * i / 8))
             sections.append(ring_at(hr - d, d))
@@ -1236,11 +1256,17 @@ def build():
         mb.loft(sections)
         for j in range(7):                                # bolt bosses on the outboard top edge
             yb = b["cyls"][0]["y"] - P["bore_pitch"] / 2 + j * P["bore_pitch"]
-            mb.cyl(8.0, z0 + Hc - 4.0, z0 + Hc + 4.0, M=T(o * 52.0 * kx, yb, 0), seg=20)
+            mb.cyl(8.0, z0 + Hc - 4.0 + bulge(yb), z0 + Hc + 4.0 + bulge(yb), M=T(o * 52.0 * kx, yb, 0), seg=20)
         cover = mb.finish(f"F140HC_CamCover_{b['label']}", c_house, [M["rosso"]], parent=be,
                           smooth_angle=50.0)
         cut = MB()
-        cut.box(0, hc, z0 + (Hc - 8.0) / 2, 2 * (hw - 12), hl - 24, Hc - 4.0)
+        # hollow the cover but keep ~8 mm walls: thinner walls let the edge bevel open holes (the cam
+        # towers and timing chain showed through in the photo-13 render)
+        cut.box(0, hc, z0 + (Hc - 12.0) / 2 - 2.0, 2 * (hw - 22), hl - 40, Hc - 12.0)
+        # deeper pocket under the front rise: the cam-drive chain loop reaches ~7 mm above the plain top
+        yc0, yc1 = hf + 20.0, P["cover_bulge"][0]
+        cut.box(0, (yc0 + yc1) / 2, z0 + (Hc + P["cover_bulge"][2] - 8.0) / 2 - 2.0, 2 * (hw - 22),
+                yc1 - yc0, Hc + P["cover_bulge"][2] - 8.0)
         bake_boolean(cover, cut.finish("F140HC_cut_cover", c_tmp, [], parent=be))
         covers.append(cover)
         # coil boots, oil filler cap, plugs
@@ -1258,8 +1284,12 @@ def build():
                       (0, deck + 72.0)], 6 * 4, T(0, c["y"], 0))
         for dx in (-13.0, 13.0):                          # figure-8 oil filler cap
             yf = min(c_["y"] for c_ in b["cyls"]) - 0.68 * P["bore_pitch"]   # photo 13: 0.68 pitch ahead
-            mb.cyl(14.0, z0 + Hc, z0 + Hc + 16.0, M=T(o * 8.0 + dx, yf, 0), seg=28)
-        mb.finish(f"F140HC_Coils_{b['label']}", c_house, [M["black"]], parent=be)
+            zf = z0 + Hc + bulge(yf) - 2.0
+            mb.cyl(14.0, zf, zf + 16.0, M=T(o * 8.0 + dx, yf, 0), seg=28)
+            mb.lathe([(14.0, zf), (19.5, zf), (19.5, zf + 3.0), (14.0, zf + 3.0)], 32, T(o * 8.0 + dx, yf, 0),
+                     mi=1, closed=True)                   # chrome surround of the figure-8 pocket
+        mb.rbox(o * 8.0, yf, zf + 26.0, 6.0, 22.0, 22.0, 2.5, 2)   # cap handle tab (photo 13)
+        mb.finish(f"F140HC_Coils_{b['label']}", c_house, [M["black"], M["polished"]], parent=be)
         pl.finish(f"F140HC_SparkPlugs_{b['label']}", c_house, [M["ceramic"]], parent=be)
 
     # timing chains (static path), timing cover
@@ -1642,6 +1672,16 @@ def build():
             mb.lathe([(0, 0), (10, 0), (10, 7), (8, 9), (0, 9)], 24,
                      T(sx * xe, yb_, zb - 20.0) @ RY(90 if sx > 0 else -90), mi=1)
         mb.finish(f"F140HC_IntakeFlangeLip_{'L' if sx < 0 else 'R'}", c_ind, [M["dlc"], M["block_cast"]], parent=root)
+        # black sensor/actuator box on the outer side of the pod's rear foot, round connector on its face
+        # (photo 13 u 440-600 / v 300-420, back-projected; photo 04 shows the same on the +X pod)
+        by_, bz_, bsy, bsz = P["pod_sensor_box"]
+        xo_ = interp(P["pod_outer"], (y_rear - by_) / (y_rear - y_tip))
+        xin = xo_ - P["pod_undercut"] * (xo_ - xi) + 4.0
+        mb = MB()
+        mb.rbox(sx * (xin + 24.0), by_, bz_, 48.0, bsy, bsz, 10.0, 3)
+        mb.lathe([(0, 0), (14, 0), (14, 12), (11, 14), (0, 14)], 24,
+                 T(sx * (xin + 47.0), by_ - 26.0, bz_ - 26.0) @ RY(90 if sx > 0 else -90))
+        mb.finish(f"F140HC_PodSensorBox_{'L' if sx < 0 else 'R'}", c_ind, [M["black"]], parent=root)
         # pod flange bolts: inner edge along the spine, outer lower edge
         for j in range(6):
             u = 0.12 + j * 0.14
@@ -2002,13 +2042,15 @@ def build():
                 for dx in (-19.0, 19.0):
                     bolt(f"CamCap_{b['label']}", 8, 45.0, (side * v["cam_x"] + dx, y, v["cam_z"] + 24.0),
                          parent=be)
-        ztop = deck + hh + 7.0 * P["cover_height"] / 42.0
-        for y in rows:
-            for sx in (-1, 1):
-                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * (hw - 3.0 * hw / 82.0), y, ztop), parent=be)
         o = -b["inb"]
+        for y in rows:                                    # outboard lip: flat at profile z 6; inboard at 7
+            for sx in (-1, 1):
+                zl_ = deck + hh + (6.0 if sx == o else 7.0) * P["cover_height"] / 42.0
+                xl_ = (80.5 if sx == o else 79.0) * hw / 82.0
+                bolt(f"CamCover_{b['label']}", 6, 25.0, (sx * xl_, y, zl_), parent=be)
         for y in rows:                                    # bolts in the top-edge bosses
-            bolt(f"CamCover_{b['label']}", 6, 20.0, (o * 52.0 * hw / 82.0, y, deck + hh + P["cover_height"] + 4.0),
+            bolt(f"CamCover_{b['label']}", 6, 20.0, (o * 52.0 * hw / 82.0, y, deck + hh + P["cover_height"] + 4.0
+                                                     + cover_bulge(y)),
                  parent=be)
         for c in b["cyls"]:
             bolt(f"Coil_{b['label']}", 6, 20.0, (-b["inb"] * 18.0, c["y"] + 12.0,
