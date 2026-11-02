@@ -1,0 +1,22 @@
+{
+ "_about": "Hand picks for the front of the engine (pixel coords in the full-res image). Model coords are root-frame mm guesses used so far; the joint solve should treat accessory centres as free 3D points. See HANDOVER.md 'Open conflict'.",
+ "photo11": {"image": "amalgam/11.jpg", "size": [1800, 1200],
+   "crank_pulley_centre": [903, 733], "crank_pulley_rim_radius_px": 87,
+   "ac_clutch_centre": [1103, 760], "ac_pulley_radius_px": 70,
+   "alternator_centre": [607, 637],
+   "idler_upper_centre": [743, 637], "idler_lower_centre": [700, 717],
+   "water_pump_housing_centre": [713, 793],
+   "left_cover_outer_bottom_corner": [597, 490], "right_cover_outer_bottom_corner": [1203, 487],
+   "left_cover_inner_bottom_corner": [800, 363], "right_cover_inner_bottom_corner": [993, 363],
+   "casting_bottom_centre": [907, 867]},
+ "video_031.5s": {"image": "video/f_031.5.jpg", "size": [1920, 1080],
+   "crank_pulley_centre": [855, 818], "crank_pulley_rim_radius_px": 138,
+   "alternator_pulley_centre": [465, 645],
+   "left_cover_outer_bottom_corner": [502, 368]},
+ "photo13_side": {"image": "amalgam/13.jpg", "size": [1800, 1200],
+   "alternator_centre": [1400, 809], "alternator_body_rows": [706, 909],
+   "alternator_pulley_front": [1505, 809], "diff_output_flange_centre": [60, 796]},
+ "model_guesses_mm": {"crank_pulley_centre": [0, -125, 0], "ac_clutch_centre": [168, -125, -13],
+   "alternator_centre_front_view": [-250, -125, 81], "alternator_centre_side_view": [-262, -110, 46],
+   "idler_upper": [-134, -125, 84], "idler_lower": [-176, -125, 13]}
+}
