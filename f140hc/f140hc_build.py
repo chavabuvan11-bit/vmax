@@ -263,16 +263,23 @@ P = {
     # --- MEASURED: SP3 carbon intake. Plan widths from top photo 20 (as a fraction of the cam
     # cover half-width, x 273 mm); heights from side photo 13 (fraction of cover length above
     # the cover top). Extracted by colour segmentation, see tools/ in the README. --------------
-    "pod_base_z": 395.0,           # pod flange height above crank axis
+    # Re-measured through the solved photo-13 camera: carbon shell top traced by segmentation
+    # (dark pod vs light backdrop, 23 columns), back-projected at the crest depth; flange bolt line
+    # at v ~372 (z 374); rounded nose ends at y ~-30 (photo 20's cover-ruler mapping says -56;
+    # the side view is the better-calibrated one). Plan widths: top photo 20, rescaled to this length.
+    "pod_base_z": 374.0,           # pod flange height above crank axis
     "pod_inner_x": 16.0,           # pod inner edge from engine centreline (spine half-width)
-    "pod_length_frac": 0.97,       # pod length / cam cover length (rear ends flush)
-    "pod_outer": [(0.0, 245.0), (0.22, 247.0), (0.34, 240.0), (0.45, 224.0), (0.56, 208.0),
-                  (0.67, 183.0), (0.79, 147.0), (0.90, 110.0), (1.0, 80.0)],
-    "pod_height": [(0.0, 194.0), (0.16, 206.0), (0.28, 210.0), (0.40, 206.0), (0.53, 194.0),
-                   (0.66, 174.0), (0.78, 147.0), (0.84, 130.0), (0.90, 111.0), (1.0, 84.0)],
+    "pod_length_frac": 0.916,      # pod length / cam cover length (rear ends flush)
+    "pod_outer": [(0.0, 245.0), (0.233, 247.0), (0.36, 240.0), (0.477, 224.0), (0.593, 208.0),
+                  (0.71, 183.0), (0.837, 147.0), (0.953, 110.0), (1.0, 95.0)],
+    "pod_height": [(0.0, 170.0), (0.05, 174.0), (0.135, 182.0), (0.22, 185.0), (0.305, 186.0), (0.39, 183.0),
+                   (0.473, 177.0), (0.558, 167.0), (0.643, 154.0), (0.728, 138.0), (0.812, 119.0),
+                   (0.896, 97.0), (1.0, 70.0)],
     "pod_nose_start": 0.92,        # where the blunt nose begins to round off
     "pod_crest": 0.62,             # crest position across the pod, inner 0 .. outer 1
     "pod_scoop": 0.38,             # inner-rear scoop depth (fraction of height)
+    "pod_bulge_z": 0.40,           # widest point of the shell, fraction of its height (photo 13)
+    "pod_undercut": 0.20,          # flange inset under the bulge, fraction of the plan width
     "tb_radius": 52.0,             # throttle body (side photo: ~104 mm across)
     "tb_offset_x": 210.0,          # top photo: 0.77 of cover half-width
     "tb_height": 113.0,            # above pod flange (side photo)
@@ -645,6 +652,10 @@ def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=
         nt.links.new(n2.outputs["Fac"], bump.inputs["Height"])
         nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
     if weave:                  # 2x2 twill approximation for carbon
+        # the gloss comes from the epoxy clear coat; the weave itself barely reflects (otherwise the
+        # base layer's blurred specular turns the black carbon grey, unlike the photos)
+        _set(bsdf, "Specular IOR Level", 0.12)
+        _set(bsdf, "Coat Roughness", 0.025)
         tc = nt.nodes.new("ShaderNodeTexCoord")
         chk = nt.nodes.new("ShaderNodeTexChecker")
         chk.inputs["Scale"].default_value = 320.0
@@ -1531,20 +1542,30 @@ def build():
                 h *= max(s_, 0.25) ** 0.6
             # scoop on the inner-rear quarter (photo 09 / 20)
             scoop = P["pod_scoop"] * max(0.0, 1.0 - u / 0.42)
-            pts = []
-            for k in range(NT + 1):                     # top: inner edge -> outer edge
-                t = 0.5 - 0.5 * cos(pi * k / NT)        # denser near the edges
-                tc = (t - P["pod_crest"]) / (1.0 - P["pod_crest"]) if t > P["pod_crest"] else \
-                    (P["pod_crest"] - t) / P["pod_crest"]
-                dome = max(0.0, 1.0 - tc ** 2.6) ** (1 / 2.2)
-                dip = scoop * math.exp(-((t - 0.32) / 0.2) ** 2)
-                pts.append((x0 + (x1 - x0) * t, zb + h * dome * (1.0 - dip)))
-            pts[0] = (x0, zb + 6.0)
-            pts[-1] = (x1, zb + 6.0)
+            # cross-section (photo 13: rounded glossy side, dark undercut above the bolted flange):
+            # inner wall -> elliptical shoulder -> crest -> outer bulge at 40 % height -> undercut
+            # curving back in to a flange 20 % narrower than the bulge -> flat underside
+            W_ = x1 - x0
+            xc = x0 + P["pod_crest"] * W_
+            hb = P["pod_bulge_z"] * h
+            wu = P["pod_undercut"] * W_
+            pts = [(x0, zb + 2.0)]
+            for k in range(1, 9):                        # inner shoulder up to the crest
+                a_ = pi - (pi / 2) * k / 8
+                pts.append((xc + (xc - x0) * cos(a_), zb + 0.25 * h + 0.75 * h * sin(a_)))
+            for k in range(1, 15):                       # outer shoulder down to the bulge
+                a_ = pi / 2 - (pi / 2) * k / 14
+                pts.append((xc + (x1 - xc) * cos(a_), zb + hb + (h - hb) * sin(a_)))
+            for k in range(1, 9):                        # undercut back in to the flange
+                a_ = -(pi / 2) * k / 8
+                pts.append((x1 - wu + wu * cos(a_), zb + hb + hb * sin(a_)))
+            # inner-rear scoop: depress the top near 32 % across
+            pts = [(x_, z_ - scoop * h * math.exp(-(((x_ - x0) / max(W_, 1.0) - 0.32) / 0.2) ** 2)
+                    * max(0.0, (z_ - zb) / h)) for x_, z_ in pts]
             ring = [(sx * x, y, z) for x, z in pts]
-            for k in range(1, 6):                        # flat underside, outer -> inner
+            for k in range(1, 6):                        # flat underside, outer flange -> inner
                 t = 1.0 - k / 6
-                ring.append((sx * (x0 + (x1 - x0) * t), y, zb))
+                ring.append((sx * (x0 + (x1 - wu - x0) * t), y, zb))
             if sx < 0:
                 ring.reverse()
             secs.append(ring)
@@ -1557,20 +1578,22 @@ def build():
         foot = []
         for i in range(0, int(NSEC * P["pod_nose_start"]) + 1, 3):
             u = i / NSEC
-            foot.append((sx * (interp(P["pod_outer"], u) - 14.0), y_rear - u * (y_rear - y_tip)))
+            xo_ = interp(P["pod_outer"], u)
+            foot.append((sx * (xo_ - P["pod_undercut"] * (xo_ - xi) + 12.0), y_rear - u * (y_rear - y_tip)))
         foot.append((sx * (xi - 4.0), y_rear - P["pod_nose_start"] * (y_rear - y_tip)))
         foot.append((sx * (xi - 4.0), y_rear))
         if sx > 0:
             foot.reverse()
         mb = MB()
         mb.prism_xy(foot, zb - 30.0, zb)
-        mb.finish(f"F140HC_IntakeManifold_{'L' if sx < 0 else 'R'}", c_ind, [M["alu_cast"]], parent=root)
+        mb.finish(f"F140HC_IntakeManifold_{'L' if sx < 0 else 'R'}", c_ind, [M["block_cast"]], parent=root)
         # pod flange bolts: inner edge along the spine, outer lower edge
         for j in range(6):
             u = 0.12 + j * 0.14
             yb = y_rear - u * (y_rear - y_tip)
-            pod_bolts.append((sx * (xi + 9.0), yb, zb + 4.0))
-            pod_bolts.append((sx * (interp(P["pod_outer"], u) - 6.0), yb, zb + 4.0))
+            pod_bolts.append((sx * (xi - 1.0), yb, zb))
+            xo_ = interp(P["pod_outer"], u)
+            pod_bolts.append((sx * (xo_ - P["pod_undercut"] * (xo_ - xi) + 5.0), yb, zb))   # on the ledge
         # throttle body: bore, flange, motor housing
         tbx, tbz, tr = sx * P["tb_offset_x"], zb + P["tb_height"], P["tb_radius"]
         mb = MB()
