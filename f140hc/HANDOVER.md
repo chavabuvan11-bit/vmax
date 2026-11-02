@@ -152,7 +152,7 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
    - `OCCLUSION` encodes which tube hides which in photo 13.
    - `INIT_HINT` gives a starting layout that already respects the stacking order. Without it
      the solver lands in local minima.
-8. **Ray-cast picking** (pattern in HANDOVER section 8): `scene.ray_cast` from the solved camera
+8. **Ray-cast picking** (`tools/raycast_pick.py CAMERA.json u,v` or `col=U v0 v1`): `scene.ray_cast` from the solved camera
    through a pixel tells you which part and depth the render shows there. It settled the
    tube-width question in seconds. Hide `hide_render` objects first, or the Amalgam envelope
    swallows every ray.
