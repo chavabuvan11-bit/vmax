@@ -633,7 +633,7 @@ def build_materials():
         "bolt": material("F140_Bolt_Zinc", (0.70, 0.70, 0.66), 1.0, 0.30),
         "chain": material("F140_Chain", (0.20, 0.20, 0.21), 1.0, 0.30),
         "magnesium": material("F140_Gearbox_Cast", (0.58, 0.58, 0.57), 1.0, 0.55, cast=0.35),
-        "polished": material("F140_Stainless_Polished", (0.80, 0.80, 0.82), 1.0, 0.15),
+        "polished": material("F140_Stainless_Polished", (0.82, 0.82, 0.84), 1.0, 0.19),
         "bellows": material("F140_Bellows", (0.72, 0.72, 0.74), 1.0, 0.20),
         "envelope": material("F140_Envelope", (0.2, 0.6, 1.0), 0.0, 0.5, alpha=0.15),
     }
