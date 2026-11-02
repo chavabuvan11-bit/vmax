@@ -605,8 +605,8 @@ def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=
         tc = nt.nodes.new("ShaderNodeTexCoord")
         chk = nt.nodes.new("ShaderNodeTexChecker")
         chk.inputs["Scale"].default_value = 320.0
-        chk.inputs["Color1"].default_value = (0.010, 0.010, 0.011, 1)
-        chk.inputs["Color2"].default_value = (0.035, 0.035, 0.038, 1)
+        chk.inputs["Color1"].default_value = (0.005, 0.005, 0.006, 1)
+        chk.inputs["Color2"].default_value = (0.022, 0.022, 0.025, 1)
         nt.links.new(tc.outputs["Object"], chk.inputs["Vector"])
         nt.links.new(chk.outputs["Color"], bsdf.inputs["Base Color"])
     m.diffuse_color = (*color, alpha)
@@ -627,7 +627,7 @@ def build_materials():
         "valve": material("F140_Valve_Steel", (0.62, 0.62, 0.64), 1.0, 0.20),
         "spring": material("F140_Spring_Steel", (0.08, 0.09, 0.12), 1.0, 0.35),
         "rosso": material("F140_Rosso_Crinkle", (0.60, 0.0, 0.0), 0.0, 0.55, coat=0.3, wrinkle=0.25),
-        "carbon": material("F140_Carbon", (0.02, 0.02, 0.022), 0.0, 0.35, coat=1.0, weave=True),
+        "carbon": material("F140_Carbon", (0.01, 0.01, 0.012), 0.0, 0.22, coat=1.0, weave=True),
         "inconel": material("F140_Exhaust_Inconel", (0.36, 0.33, 0.30), 1.0, 0.42),
         "black": material("F140_Black_Plastic", (0.02, 0.02, 0.02), 0.0, 0.50),
         "ceramic": material("F140_Plug_Ceramic", (0.85, 0.85, 0.82), 0.0, 0.30),
@@ -1669,7 +1669,7 @@ def build():
         mb.rbox(sx * (x_in + x_out) / 2, (y_a + y_b) / 2, mz, x_out - x_in, y_b - y_a, EX["muffler_h"], 28.0, 4)
         for ox in EX["outlet_x"]:
             mb.rbox(sx * ox, y_b - 30.0, mz + EX["muffler_h"] / 2 + 40.0, 92.0, 46.0, 110.0, 6.0, 3, mi=1)
-        mb.finish(f"F140HC_Muffler_{tag}", c_ind, [M["alu_mach"], m_pol], parent=root)
+        mb.finish(f"F140HC_Muffler_{tag}", c_ind, [m_pol, m_pol], parent=root)
 
     # ---------------- gearbox placeholder ----------------
     mb = MB()
