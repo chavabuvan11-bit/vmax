@@ -178,6 +178,11 @@ def main():
     lo = np.full_like(x0, -np.inf); hi = np.full_like(x0, np.inf)
     lo[0:2], hi[0:2] = 0.6, 1.5
     lo[0], hi[0] = 0.9999, 1.0001          # absolute scale is unobservable from images: fix k_h (bore pitch ruler)
+    # k_v free makes the cameras consistent with a vertically rescaled model, not the one that is
+    # rendered (photo 16 coils then land 50-70 px off). Default: k_v = 1, so every saved camera
+    # matches the model as built. F140_FREE_KV=1 frees it again for diagnosis.
+    if not os.environ.get("F140_FREE_KV"):
+        lo[1], hi[1] = 0.9999, 1.0001
     for j in range(len(views)):
         lo[5 + 7 * j + 6], hi[5 + 7 * j + 6] = 20.0, 600.0
     # photo 13's focal length is unobservable from these points: fixing it anywhere in 35..200 mm

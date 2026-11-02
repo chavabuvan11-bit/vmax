@@ -294,6 +294,18 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 
 ## 10. Recent changes (newest first)
 
+- **Joint solve fixed at k_v = 1.** With k_v free, the saved cameras only fit a model squashed
+  6.6% vertically, so photo 16's coils rendered 50–70 px off. With k_v = 1 every `ba_*` camera
+  matches the model as built (photo 16 now overlays well). The photo 13 camera moved down about
+  20 px, so every photo-13-derived lower part was re-mapped (old pixel → new ray at the same
+  depth): z +15 for the clamp and catalyst, +16 for the pumps, sump bosses, alternator,
+  differential cover, hairpin, bracket, gusset and gearbox case. Tube depths were re-solved.
+  - **Caveat:** whether the cover sits about 15 mm too high relative to the lower parts, or the
+    other way round, is within noise (k_v 0.93–0.98 when free). Treat the absolute z of the
+    lower parts as ±15 mm.
+  - **Photo 11's camera is degenerate:** six near-coplanar front points give a 185 mm lens at
+    about 22° elevation. Add non-coplanar front features before using it.
+
 - Catalyst re-traced through the solved camera (170 mm tall, outlet 56 mm, beads moved). The
   oil pump, water pump, differential cover and brace rod were rebuilt from back-projected
   photo-13 outlines.

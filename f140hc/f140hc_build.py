@@ -145,10 +145,10 @@ P = {
         "tube_zoom": (560.0, 560.0, 2.0),             # zoom origin u, v and scale
         "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
         # jointly solved photo-13 camera (tools/bundle_adjust.py: lens pinned 100 mm, look-down prior
-        # from the stand-cup ellipses). Traced pixels are back-projected through it onto the plane
+        # from the stand-cup ellipses, k_v fixed at 1 so it matches the model as built). Traced pixels are back-projected through it onto the plane
         # x = anchor depth, so a tube sits exactly on its trace whatever its depth.
-        "photo13_cam": {"lens": 99.9990, "loc": (-3.890903, 0.375616, 0.532600), "size": (1800, 1200),
-                        "rot": ((-0.013987, 0.053072, -0.998493), (-0.999897, 0.002480, 0.014139), (0.003227, 0.998588, 0.053032))},
+        "photo13_cam": {"lens": 99.9990, "loc": (-3.921569, 0.300006, 0.516766), "size": (1800, 1200),
+                        "rot": ((0.006455, 0.043703, -0.999024), (-0.999975, 0.003016, -0.006329), (0.002736, 0.999040, 0.043722))},
         "port_z_above_deck": 20.0,
         # primary OD: each tube's traced silhouette radius (zoom px / 2 = photo px) times the camera's
         # mm/px at that depth, no fudge factor. Spot checks in photo 13 (ray-cast verified): rear tube
@@ -165,17 +165,17 @@ P = {
         # (953, 930); centre = band midpoint back-projected at x -330 (top photo 20: ring arc at
         # -380..-395 apparent, T-bolt nuts -405..-415, i.e. ring outer edge ~-409 true). Edge-on means
         # the axis has no x component; it rises 50 deg forward-up, perpendicular to the band.
-        "clamp_pos": (-330.0, 347.0, 9.0),
+        "clamp_pos": (-330.0, 345.0, 24.0),
         # depth (x) of every traced point, solved by tools/solve_header_depth.py: each point stays on
         # its photo-13 pixel ray; tubes keep >= 4 mm between surfaces, centrelines stay inside the
         # top-photo-20 envelope (x >= -360) and clear of the head (x <= -282)
         "tube_anchors": [
-            {0: -283.5, 1: -288.8, 2: -294.5, 3: -300.3, 4: -306.2, 5: -312.1, 6: -317.9, 7: -323.5, 8: -328.7},
-            {0: -283.0, 1: -289.5, 2: -297.5, 3: -306.5, 4: -315.4, 5: -323.1, 6: -329.3, 7: -334.1, 8: -337.4, 9: -338.9},
-            {0: -281.1, 1: -281.9, 2: -291.2, 3: -304.5, 4: -318.3, 5: -329.4, 6: -337.5, 7: -344.0},
-            {0: -304.6, 1: -309.3, 2: -315.2, 3: -323.7, 4: -332.7, 5: -339.8, 6: -345.3, 7: -349.3, 8: -352.6},
-            {0: -281.8, 1: -283.5, 2: -292.1, 3: -304.7, 4: -316.9, 5: -323.0, 6: -315.6, 7: -302.2, 8: -305.4, 9: -315.8},
-            {0: -342.4, 1: -348.0, 2: -354.9, 3: -359.8, 4: -360.2, 5: -360.5, 6: -360.1}],
+            {0: -286.4, 1: -291.6, 2: -296.8, 3: -302.1, 4: -307.4, 5: -312.8, 6: -318.3, 7: -323.7, 8: -328.7},
+            {0: -282.0, 1: -288.3, 2: -297.2, 3: -308.0, 4: -318.4, 5: -326.7, 6: -332.2, 7: -335.5, 8: -337.0, 9: -337.1},
+            {0: -280.3, 1: -281.9, 2: -291.5, 3: -304.7, 4: -318.3, 5: -329.2, 6: -337.0, 7: -343.4},
+            {0: -298.5, 1: -306.0, 2: -314.4, 3: -324.5, 4: -334.2, 5: -341.7, 6: -347.4, 7: -351.7, 8: -355.2},
+            {0: -281.8, 1: -284.3, 2: -293.6, 3: -306.3, 4: -318.2, 5: -324.1, 6: -316.8, 7: -301.7, 8: -304.0, 9: -314.5},
+            {0: -343.1, 1: -348.5, 2: -355.3, 3: -360.0, 4: -360.4, 5: -361.2, 6: -360.4}],
         "merge_axis": (0.0, 50.3),                    # (inboard x per unit forward-up, elevation deg)
         "collector_dist": 35.0,                       # merge plenum centre above the ring plane
         "sensor_angle": 22.0,                         # O2 sensor shoulder angle: joint solve puts it at x ~-359
@@ -186,25 +186,25 @@ P = {
         # cap as wide as the canister, ending ~150 mm ahead of the front seam
         # dome: matches the re-traced can at the seam (r 86, centre -13); its front-bottom bulges low
         # (photo 13: front-most outline at y ~309, z ~-64), so the centre line drops toward the tip
-        "cat_dome": {"y_seam": 449.0, "length": 150.0, "r": 87.0, "zc": -13.0, "rise": -15.0},
+        "cat_dome": {"y_seam": 449.0, "length": 150.0, "r": 87.0, "zc": 2.0, "rise": -15.0},
         # canister + rear cone silhouette re-traced on a gridded full-res crop of photo 13 and back-projected
         # through the solved camera at the can's axis depth (x -320). The earlier "+15 mm" correction was
         # made through a 35 mm-lens camera whose perspective inflated near parts; this replaces it.
-        "cat_sections": [(449, 74, -99), (470, 74, -100), (532, 68, -103), (568, 66, -104), (603, 65, -104),
-                         (639, 61, -105), (675, 53, -107), (711, 38, -108), (746, 23, -108), (782, 7, -108),
-                         (818, -9, -106), (854, -27, -103), (876, -40, -100), (892, -45, -98),
-                         (905, -45, -98), (1000, -45, -98)],
+        "cat_sections": [(449, 89, -84), (470, 89, -85), (532, 83, -88), (568, 81, -89), (603, 80, -89),
+                         (639, 76, -90), (675, 68, -92), (711, 53, -93), (746, 38, -93), (782, 22, -93),
+                         (818, 6, -91), (854, -12, -88), (876, -25, -85), (892, -30, -83),
+                         (905, -30, -83), (1000, -30, -83)],
         "cat_beads": [449.0, 507.0, 682.0],                # seam lines at photo-13 u ~733 / 645 / 405
         # plan width vs height: top photo 20 shows the dome as round (outer edge -414 at y 410..460)
         # but the canister behind it narrower (outer -390 at y 500..560): an oval can, 0.74 as wide.
         "cat_oval": [(459.0, 1.0), (500.0, 0.74), (690.0, 0.74), (760.0, 0.9), (1000.0, 1.0)],
-        "sensor": (549.0, 66.0), "sensor_r": 85.0, "slip_joint": (916.0, 960.0),
+        "sensor": (549.0, 81.0), "sensor_r": 85.0, "slip_joint": (916.0, 960.0),
         "muffler_y": (1402.0, 1553.0), "muffler_x_span": (14.0, 340.0),
         "muffler_x": 220.0, "muffler_z": 120.0, "muffler_h": 210.0,
         "outlet_x": (120.0, 225.0),
     },
     # gearbox (7-speed DCT) envelope: top photo 20 / side photo 13
-    "gearbox": {"half_width": 175.0, "rear_y": 1340.0, "centre_z": 33.0, "height": 326.0},       # top of the front casting between the banks
+    "gearbox": {"half_width": 175.0, "rear_y": 1340.0, "centre_z": 49.0, "height": 326.0},       # top of the front casting between the banks
     # front accessories: (x, z) of the pulley centre vs crank axis, pulley r, body r, body length
     # front photo 11, scaled with the cam cover as the ruler (EST +-10%)
     "crank_pulley_r": 72.0,                       # front photo 11: 145 mm across
@@ -218,40 +218,40 @@ P = {
                    ("water_pump", 1)],
     # near-side lower details, traced from side photo 13 (y, z via the coil-pitch ruler)
     "near_side": {
-        "alt_xz": (-257.0, 37.0),                              # joint 3-view solve
+        "alt_xz": (-257.0, 53.0),                              # joint 3-view solve
         # (y start, y end, radius, kind): rear cover, rear housing, stator band, front housing, nose
         "alt_sections": [(50, 6, 70, "ribbed"), (6, -48, 75, "slots"), (-48, -62, 77, "band"),
                          (-62, -96, 75, "slots"), (-96, -106, 50, "nose")],
-        "alt_lug": (-233.0, -40.0, 128.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
+        "alt_lug": (-233.0, -40.0, 144.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
         "oil_pump_x": -172.0,
         # oil pump / water pump: outlines picked in side photo 13 and back-projected through the solved
         # camera at the part's depth (tools: see HANDOVER "back-projection")
-        "oil_pump": {"rear": (150.0, 205.0, 40.0), "front_box": (118.0, 64.0, 76.0, 90.0), "z": -78.0,
-                     "cover_y": 86.0, "relief": (161.0, -32.0), "boss": (143.0, -67.0),
-                     "elbow": [(-182.0, 194.0, -112.0), (-182.0, 192.0, -150.0)], "drive": (30.0, 88.0, 33.0)},
-        "sump_boss": (-146.0, 296.0, -75.0, 12.0, 45.0, 64.0),
-        "water_pump_body": {"x": -180.0, "y": 0.0, "z": -97.0, "sx": 58.0, "sy": 70.0, "sz": 118.0,
-                            "cover": (-58.0, -98.0, 75.0, 112.0), "cover_x": -205.0,
-                            "cover_bolts": [(-50.0, -48.0), (-87.0, -52.0), (-40.0, -142.0), (-88.0, -149.0),
-                                            (-96.0, -100.0)],
-                            "stub": [(-203.0, -100.0, -86.0), (-240.0, -114.0, -66.0)]},
-        "oil_fittings": [(292.0, -50.0), (248.0, -62.0), (160.0, -46.0), (118.0, -46.0), (300.0, -110.0)],
-        "oil_sensor": (-182.0, 180.0, -20.0),
+        "oil_pump": {"rear": (150.0, 205.0, 40.0), "front_box": (118.0, 64.0, 76.0, 90.0), "z": -62.0,
+                     "cover_y": 86.0, "relief": (161.0, -16.0), "boss": (143.0, -51.0),
+                     "elbow": [(-182.0, 194.0, -96.0), (-182.0, 192.0, -134.0)], "drive": (30.0, 88.0, 33.0)},
+        "sump_boss": (-146.0, 296.0, -59.0, 12.0, 45.0, 64.0),
+        "water_pump_body": {"x": -180.0, "y": 0.0, "z": -81.0, "sx": 58.0, "sy": 70.0, "sz": 118.0,
+                            "cover": (-58.0, -82.0, 75.0, 112.0), "cover_x": -205.0,
+                            "cover_bolts": [(-50.0, -32.0), (-87.0, -36.0), (-40.0, -126.0), (-88.0, -133.0),
+                                            (-96.0, -84.0)],
+                            "stub": [(-203.0, -100.0, -70.0), (-240.0, -114.0, -50.0)]},
+        "oil_fittings": [(292.0, -34.0), (248.0, -46.0), (160.0, -30.0), (118.0, -30.0), (300.0, -94.0)],
+        "oil_sensor": (-182.0, 180.0, -4.0),
         # diff side cover: 11 rim bolts fit a circle (residual 0.2 px) centred at photo-13 pixel (65, 787),
         # r 176 px = 131 mm at the case face; the polished output flange is concentric
-        "diff_centre": (944.0, 44.0), "diff_bolt_start_deg": -97.5,
+        "diff_centre": (951.0, 60.0), "diff_bolt_start_deg": -97.5,
         # polished hairpin tube on top of the gearbox (photo 13 2x: two runs at v ~575 / ~600 meeting in a
         # U-bend at u ~395 by the head bracket); both legs enter the gearbox top
-        "hairpin": [(-172.0, 945.0, 204.0), (-205.0, 770.0, 204.0), (-238.0, 702.0, 202.0), (-252.0, 690.0, 212.0),
-                    (-238.0, 702.0, 222.0), (-205.0, 770.0, 222.0), (-172.0, 950.0, 220.0)],
-        "bracket_puck": (680.0, 119.0, 24.0, 30.0),            # y, z, radius, length (black, on the bracket)
+        "hairpin": [(-172.0, 945.0, 220.0), (-205.0, 770.0, 220.0), (-238.0, 702.0, 218.0), (-252.0, 690.0, 228.0),
+                    (-238.0, 702.0, 238.0), (-205.0, 770.0, 238.0), (-172.0, 950.0, 236.0)],
+        "bracket_puck": (680.0, 135.0, 24.0, 30.0),            # y, z, radius, length (black, on the bracket)
         # cast gearbox-mount gusset on the case's front-top flank (photo 13 u 250-390 / v 640-770)
-        "gb_gusset": [(700.0, 175.0), (805.0, 175.0), (805.0, 148.0), (738.0, 82.0), (700.0, 82.0)],
-        "sump_lobe": (-215.0, 486.0, -107.0, 130.0, 111.0, 69.0),
-        "rear_bracket": (-262.0, 671.0, 133.0, 150.0),         # x, y, z centre, height; photo 13 v 590-790 -> up to the head
+        "gb_gusset": [(700.0, 191.0), (805.0, 191.0), (805.0, 164.0), (738.0, 98.0), (700.0, 98.0)],
+        "sump_lobe": (-215.0, 486.0, -91.0, 130.0, 111.0, 69.0),
+        "rear_bracket": (-262.0, 671.0, 149.0, 150.0),         # x, y, z centre, height; photo 13 v 590-790 -> up to the head
     },
     "accessories": {
-        "alternator": (-257.0, 37.0, 32.0, 0, 0),         # joint solve (bundle_adjust.py)
+        "alternator": (-257.0, 53.0, 32.0, 0, 0),         # joint solve (bundle_adjust.py)
         "idler_upper": (-131.0, 88.0, 25.0, 0, 0),
         "idler_lower": (-170.0, 15.0, 24.0, 0, 0),
         "ac_compressor": (167.0, -25.0, 55.0, 58.0, 170.0),
@@ -1363,7 +1363,7 @@ def build():
     ox = NS["oil_pump_x"]
     OP = NS["oil_pump"]
     mb = MB()
-    mb.rbox(ox + 22, 150, -40, 26, 150, 18, 4.0, 2)                              # mounting rail on the sump
+    mb.rbox(ox + 22, 150, -24, 26, 150, 18, 4.0, 2)                              # mounting rail on the sump
     y0r, y1r, rr = OP["rear"]
     mb.cyl_y(rr, y0r, y1r, cx=ox, cz=OP["z"], seg=40)
     for yy in (y0r, y0r + 26, y1r - 6):
@@ -1388,7 +1388,7 @@ def build():
         if 80 < yy < 210:
             mb.lathe([(9.5, 0), (9.5, 9), (6, 9), (6, 18)], 6, T(ox - 30, yy, zz) @ RY(-90), mi=1)
     for yy in range(85, 230, 36):                                                # rail bolts
-        mb.lathe([(6.0, 0), (6.0, 6)], 6, T(ox + 9, yy, -40) @ RY(-90), mi=1)
+        mb.lathe([(6.0, 0), (6.0, 6)], 6, T(ox + 9, yy, -24) @ RY(-90), mi=1)
     sx_, sy_, sz_ = NS["oil_sensor"]
     mb.lathe([(8, 0), (8, 8), (5, 8), (5, 26), (3, 30)], 16, T(sx_, sy_, sz_), mi=1)
     mb.finish("F140HC_OilPumpBody", c_house, [m_cast, M["steel"]], parent=root)
@@ -1453,8 +1453,8 @@ def build():
     gx0 = -P["gearbox"]["half_width"]
     mb.prism_xz([(z_, y_) for y_, z_ in NS["gb_gusset"]][::-1], gx0 - 18.0, gx0 + 2.0,
                 M=Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1))))
-    mb.lathe([(14, 0), (14, 24)], 24, T(gx0 - 18.0, 740.0, 150.0) @ RY(-90))
-    mb.lathe([(8, 24), (8, 31)], 6, T(gx0 - 18.0, 740.0, 150.0) @ RY(-90), mi=1)
+    mb.lathe([(14, 0), (14, 24)], 24, T(gx0 - 18.0, 740.0, 166.0) @ RY(-90))
+    mb.lathe([(8, 24), (8, 31)], 6, T(gx0 - 18.0, 740.0, 166.0) @ RY(-90), mi=1)
     mb.finish("F140HC_GearboxMountGusset", c_drive, [M["magnesium"], M["steel"]], parent=root)
 
     # coolant Y-manifold in the V and thermostat housing
