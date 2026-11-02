@@ -134,7 +134,11 @@ P = {
         "tube_zoom": (560.0, 560.0, 2.0),             # zoom origin u, v and scale
         "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
         "port_z_above_deck": 20.0,
-        "tube_scale": 1.18,                           # traced edges sit inside the highlights
+        "tube_scale": 1.35,                           # ~50 mm OD: video close-ups vs 46 mm coil boots
+        # depth (x) along each traced tube: start, loop, end. Loops swing out (top photo 20 and the
+        # low video view need them overlapping the cover), ends tuck in to the clamp.
+        "tube_depth": [(-330.0, -372.0, -332.0), (-330.0, -378.0, -330.0), (-325.0, -350.0, -330.0),
+                       (-330.0, -388.0, -332.0), (-330.0, -392.0, -332.0), (-330.0, -385.0, -330.0)],
         "collector": (-326.0, 282.0, 62.0),
         "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
         "cat_x": 320.0,
@@ -159,11 +163,11 @@ P = {
     "crank_pulley_r": 57.0,
     # near-side lower details, traced from side photo 13 (y, z via the coil-pitch ruler)
     "near_side": {
-        "alt_xz": (-244.0, 46.0),
+        "alt_xz": (-262.0, 46.0),
         # (y start, y end, radius, kind): rear cover, rear housing, stator band, front housing, nose
         "alt_sections": [(50, 6, 70, "ribbed"), (6, -48, 75, "slots"), (-48, -62, 77, "band"),
                          (-62, -96, 75, "slots"), (-96, -106, 50, "nose")],
-        "alt_lug": (-215.0, -40.0, 128.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
+        "alt_lug": (-233.0, -40.0, 128.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
         "water_pump": (-190.0, -90.0, 57.0),                   # x, z, radius (housing along y)
         "water_outlet": (-108.0, -56.0),                       # y, z of the side outlet
         "oil_pump_x": -172.0,
@@ -174,7 +178,7 @@ P = {
         "sump_lobe": (-215.0, 486.0, -107.0, 130.0, 111.0, 69.0),
     },
     "accessories": {
-        "alternator": (-244.0, 46.0, 32.0, 0, 0),         # body built in near_side
+        "alternator": (-262.0, 46.0, 32.0, 0, 0),         # body built in near_side
         "idler_upper": (-134.0, 84.0, 25.0, 0, 0),
         "idler_lower": (-176.0, 13.0, 24.0, 0, 0),
         "ac_compressor": (168.0, -13.0, 55.0, 58.0, 170.0),
@@ -1067,7 +1071,7 @@ def build():
         # outboard edge, plan-view rounded ends, hollow
         o = -inb                                        # outboard direction in bank-local x
         z0 = deck + hh
-        prof = [(-82, 0), (82, 0), (82, 7), (77, 10), (73, 27), (61, 42), (-46, 42), (-62, 38),
+        prof = [(-82, 0), (82, 0), (82, 7), (80, 12), (79, 30), (75, 38), (66, 42), (-46, 42), (-62, 38),
                 (-71, 11), (-82, 7)]
         Hc = P["cover_height"]
         kx = hw / 82.0
@@ -1445,9 +1449,13 @@ def build():
             p0 = (-abs(px_), yc, pz_)
             p1 = (p0[0] - 0.843 * 35, yc, p0[2] - 0.537 * 35)
             pts3 = []
-            for X, Y, rz in trace:
+            d0, d1, d2 = EX["tube_depth"][ci]
+            for j_, (X, Y, rz) in enumerate(trace):
                 y_, z_ = zoom_to_yz(X, Y)
-                pts3.append((depth, y_, z_, rz / zk * ky_ * EX["tube_scale"]))
+                t_ = j_ / max(1, len(trace) - 1)
+                dep = d0 + (d1 - d0) * sin(pi * min(1.0, t_ / 0.5) / 2) if t_ < 0.5 else \
+                    d1 + (d2 - d1) * (1 - cos(pi * (t_ - 0.5) / 1.0))
+                pts3.append((dep, y_, z_, rz / zk * ky_ * EX["tube_scale"]))
             r_t = sum(p[3] for p in pts3) / len(pts3)
             path = [p0, p1, ((p1[0] + pts3[0][0]) / 2, (p1[1] + pts3[0][1]) / 2, (p1[2] + pts3[0][2]) / 2)]
             path += [p[:3] for p in pts3] + [EX["collector"]]
