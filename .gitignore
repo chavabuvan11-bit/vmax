@@ -1,0 +1,4 @@
+# deconstruct.py output (downloaded videos, frames, sheets)
+deconstruct/
+__pycache__/
+*.pyc
