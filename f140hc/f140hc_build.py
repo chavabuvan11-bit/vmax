@@ -240,9 +240,15 @@ P = {
         # diff side cover: 11 rim bolts fit a circle (residual 0.2 px) centred at photo-13 pixel (65, 787),
         # r 176 px = 131 mm at the case face; the polished output flange is concentric
         "diff_centre": (944.0, 44.0), "diff_bolt_start_deg": -97.5,
-        "brace_rod": [(-172.0, 936.0, 200.0), (-205.0, 760.0, 200.0), (-254.0, 676.0, 190.0)],   # gearbox top -> head bracket
+        # polished hairpin tube on top of the gearbox (photo 13 2x: two runs at v ~575 / ~600 meeting in a
+        # U-bend at u ~395 by the head bracket); both legs enter the gearbox top
+        "hairpin": [(-172.0, 945.0, 204.0), (-205.0, 770.0, 204.0), (-238.0, 702.0, 202.0), (-252.0, 690.0, 212.0),
+                    (-238.0, 702.0, 222.0), (-205.0, 770.0, 222.0), (-172.0, 950.0, 220.0)],
+        "bracket_puck": (680.0, 119.0, 24.0, 30.0),            # y, z, radius, length (black, on the bracket)
+        # cast gearbox-mount gusset on the case's front-top flank (photo 13 u 250-390 / v 640-770)
+        "gb_gusset": [(700.0, 175.0), (805.0, 175.0), (805.0, 148.0), (738.0, 82.0), (700.0, 82.0)],
         "sump_lobe": (-215.0, 486.0, -107.0, 130.0, 111.0, 69.0),
-        "rear_bracket": (-262.0, 671.0, 118.0, 150.0),         # x, y, z centre, height (touches head rear)
+        "rear_bracket": (-262.0, 671.0, 133.0, 150.0),         # x, y, z centre, height; photo 13 v 590-790 -> up to the head
     },
     "accessories": {
         "alternator": (-257.0, 37.0, 32.0, 0, 0),         # joint solve (bundle_adjust.py)
@@ -1399,7 +1405,8 @@ def build():
     mb = MB()
     hb = NS["rear_bracket"]
     mb.rbox(hb[0], hb[1], hb[2], 12.0, 44.0, hb[3], 3.0, 2)
-    mb.rbox(hb[0] - 14.0, hb[1] - 6.0, hb[2] + 28.0, 22.0, 30.0, 40.0, 4.0, 2)
+    py_, pz_, pr_, pl_ = NS["bracket_puck"]                                     # round black sensor puck
+    mb.lathe([(0, 0), (pr_, 0), (pr_, pl_ - 3), (pr_ - 3, pl_), (0, pl_)], 40, T(hb[0] - 6.0, py_, pz_) @ RY(-90))
     mb.finish("F140HC_RearHeadBracket", c_house, [M["black"]], parent=root)
     # dry-sump lobe visible under the catalyst front
     mb = MB()
@@ -1429,14 +1436,26 @@ def build():
         mb.lathe([(5.0, 33.0), (5.0, 33.3), (0, 33.3)], 16, Md @ T(41 * cos(a), 41 * sin(a), 0), mi=3)
     mb.lathe([(0, 33), (35, 33), (35, 40), (33, 42), (24, 42), (24, 43), (16, 43), (16, 44), (0, 44)], 64, Md, mi=2)
     mb.finish("F140HC_DiffSideCover", c_drive, [M["magnesium"], M["steel"], M["polished"], M["black"]], parent=root)
-    # polished brace rod along the top of the gearbox to the rear of the near-bank head (photo 13)
+    # polished hairpin tube on top of the gearbox, U-bend by the head bracket (photo 13)
+    cu = bpy.data.curves.new("F140HC_GearboxHairpin", 'CURVE')
+    cu.dimensions = '3D'; cu.bevel_depth = 6.5 * MM; cu.bevel_resolution = 4
+    sp = cu.splines.new('NURBS'); sp.points.add(len(NS["hairpin"]) - 1)
+    for j_, p_ in enumerate(NS["hairpin"]):
+        sp.points[j_].co = (p_[0] * MM, p_[1] * MM, p_[2] * MM, 1)
+    sp.order_u = 3; sp.use_endpoint_u = True; sp.resolution_u = 24
+    cu.materials.append(M["polished"])
+    ob_h = bpy.data.objects.new("F140HC_GearboxHairpin", cu)
+    c_drive.objects.link(ob_h); ob_h.parent = root
     mb = MB()
-    br = [Vector(p_) for p_ in NS["brace_rod"]]
-    for pa, pb in zip(br[:-1], br[1:]):
-        mb.between(tuple(pa), tuple(pb), 7.0)
-    for p_ in br:
-        mb.lathe([(0, -9), (9, -9), (9, 9), (0, 9)], 24, T(*p_))
-    mb.finish("F140HC_GearboxBraceRod", c_drive, [M["polished"]], parent=root)
+    for p_ in (NS["hairpin"][0], NS["hairpin"][-1]):                             # unions into the case
+        mb.lathe([(0, -10), (10, -10), (10, 10), (0, 10)], 6, T(*p_))
+    # mount gusset with a bolt boss on the case's front-top flank
+    gx0 = -P["gearbox"]["half_width"]
+    mb.prism_xz([(z_, y_) for y_, z_ in NS["gb_gusset"]][::-1], gx0 - 18.0, gx0 + 2.0,
+                M=Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1))))
+    mb.lathe([(14, 0), (14, 24)], 24, T(gx0 - 18.0, 740.0, 150.0) @ RY(-90))
+    mb.lathe([(8, 24), (8, 31)], 6, T(gx0 - 18.0, 740.0, 150.0) @ RY(-90), mi=1)
+    mb.finish("F140HC_GearboxMountGusset", c_drive, [M["magnesium"], M["steel"]], parent=root)
 
     # coolant Y-manifold in the V and thermostat housing
     mb = MB()
