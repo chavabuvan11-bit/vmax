@@ -215,10 +215,19 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
     crank-centre origin, 0.84 mm/px), and the crank pulley radius is 72 (145 mm across, from
     the same photo).
   - **Open conflict:** photo 11 puts the alternator 81 mm above the crank; side photo 13 gives
-    46 mm. Both cameras are near-orthographic, so one of the rulers is off: either the front
-    photo's 0.84 mm/px (from the cover half-width) or the side photo's z origin (the cover
-    bottom). The model keeps 46 because photo 13 is the focus view. Resolve this with a
-    third view (video frames 29–33 s or photo 17) before changing anything.
+    46 mm.
+    - **Third view checked** (video 31.5 s front-left close-up, frame `f_031.5.jpg`). Measured in
+      crank-pulley radii, which needs no external ruler: alternator centre about +1.25 r above
+      the crank (video), +1.1 r (photo 11), but only +0.64 r implied by the side-photo mapping.
+      So the side-photo mapping is off for the lower front of the engine.
+    - The underlying issue: about 20% vertical-scale disagreement below the cam covers between
+      the photo 13 mapping (z = 199 − (v − 600)·0.737, anchored at the cover bottom edge) and
+      the photo 11 mapping (0.84 mm/px from the cover half-width).
+    - **Fix properly** with a joint bundle adjustment: solve all cameras plus a few global scale
+      parameters (bore pitch, crank-to-cover distance) together from shared features (coils,
+      cover corners, pulley centres, flange bolts, differential flange). Then re-derive the
+      traced parts below the covers (alternator, pumps, catalyst z).
+    - Until then the model keeps the photo 13 values, since photo 13 is the focus view.
 - **After this section:** the front (timing cover shape, coolant manifold, belt detail), the
   intake pods (the user said to deprioritise them earlier), the gearbox, mufflers and
   tailpipes, and the +X side.
