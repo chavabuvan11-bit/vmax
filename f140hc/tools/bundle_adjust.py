@@ -101,6 +101,10 @@ SIZES = {"photo13": (1800, 1200), "photo11": (1800, 1200), "video114": (1920, 10
 INIT = {"photo13": "photo13_side_camera.json", "video114": "video_011.4s_topdown_camera.json",
         "video214": "video_021.4s_lowfront_camera.json", "photo16": "photo16_otherbank_camera.json"}
 MIRRORED = {"photo16"}             # landmarks seen on the other bank
+# photo 13: the round stand cups under the engine (row ~1075) show as ellipses with a minor/major
+# ratio of 0.11..0.23, i.e. seen 6..13 deg from above; they sit 5.4 deg below the optical axis at
+# 100 mm, so the camera looks DOWN ~1..7 deg. Unconstrained, the solve tips it to look up 4.5 deg.
+PITCH_PRIOR = {"photo13": (3.5, 1.5)}   # (look-down deg, sigma deg): cup rims 0.13..0.19 -> 7..11 deg, minus 5.5 deg off-axis
 
 
 def model_point(key, kh, kv, alt, lms=None, view=None):
@@ -163,6 +167,10 @@ def main():
         for v, key, uv in obs:
             W, H = SIZES[v]
             r.extend(project(cams[v], model_point(key, kh, kv, alt, lms, v), W, H) - np.array(uv))
+        for vname, (pd, sd) in PITCH_PRIOR.items():         # camera look-down angle priors
+            if vname in cams:
+                ax = -Rot.from_rotvec(cams[vname][:3]).as_matrix()[:, 2]
+                r.append((math.degrees(math.asin(-ax[2])) - pd) / sd * 15.0)
         r.append((x[0] - 1.0) * 20.0)                      # weak priors keep scales sane
         r.append((x[1] - 1.0) * 20.0)
         return np.array(r)
@@ -172,9 +180,18 @@ def main():
     lo[0], hi[0] = 0.9999, 1.0001          # absolute scale is unobservable from images: fix k_h (bore pitch ruler)
     for j in range(len(views)):
         lo[5 + 7 * j + 6], hi[5 + 7 * j + 6] = 20.0, 600.0
+    # photo 13's focal length is unobservable from these points: fixing it anywhere in 35..200 mm
+    # changes the total cost by 3 % and the landmarks by < 10 mm. Studio shots of a 1:4 model are
+    # taken with a macro/short-tele lens, so it is pinned at 100 mm (override with F140_FIX_LENS).
+    for spec in filter(None, os.environ.get("F140_FIX_LENS", "photo13:100").split(",")):   # e.g. photo13:100
+        vname, lv = spec.split(":")
+        j = views.index(vname)
+        x0[5 + 7 * j + 6] = float(lv)
+        lo[5 + 7 * j + 6], hi[5 + 7 * j + 6] = float(lv) - 1e-3, float(lv) + 1e-3
     res = least_squares(resid, x0, bounds=(lo, hi), x_scale='jac', max_nfev=4000)
     x = res.x
-    rr = resid(x)[:-2].reshape(-1, 2)
+    rr = resid(x)[:len(obs) * 2].reshape(-1, 2)
+    print("total cost %.0f  (rms %.2f px over %d points)" % (float((rr ** 2).sum()), float(np.sqrt((rr ** 2).sum(1).mean())), len(rr)))
     print("k_h (x/y scale) %.3f   k_v (z scale) %.3f" % (x[0], x[1]))
     print("alternator centre (root mm): x %.0f  y %.0f  z %.0f" % tuple(x[2:5]))
     lmo = {}

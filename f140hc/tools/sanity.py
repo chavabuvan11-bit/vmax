@@ -6,6 +6,7 @@
   LOOSE END     a tube/pipe end that isn't inside or against another part
   UNSEATED      a bolt whose head isn't sitting on a surface
   BELT          a pulley the belt doesn't wrap
+  CLASH         two header primaries passing through each other (outside the merge collector)
 Exits non-zero if anything is found, and prints every offender by name.
 """
 import os
@@ -63,7 +64,7 @@ def main():
                 best = (hit[3], n)
         return best
 
-    issues = {"FLOATING": [], "LOOSE END": [], "UNSEATED": [], "BELT": []}
+    issues = {"FLOATING": [], "LOOSE END": [], "UNSEATED": [], "BELT": [], "CLASH": []}
     for a in names:
         if "_Bolt_" in a:
             continue
@@ -111,6 +112,26 @@ def main():
                 gap = min(data[belt]["tree"].find_nearest(v)[3] for v in data[n]["samples"])
                 if gap > 2.0 * F.MM:
                     issues["BELT"].append("%s (belt %.1f mm away)" % (n, gap / F.MM))
+    prim = [n for n in names if "_Primary_C" in n]
+    for i, a in enumerate(prim):                        # primaries must not interpenetrate
+        oa = data[a]["obj"]
+        end_a = oa.matrix_world @ Vector(oa.data.splines[0].points[-1].co[:3])
+        for b in prim[i + 1:]:
+            ob_ = data[b]["obj"]
+            end_b = ob_.matrix_world @ Vector(ob_.data.splines[0].points[-1].co[:3])
+            if not near(a, b, 0.0):
+                continue
+            hits = data[a]["tree"].overlap(data[b]["tree"])
+            if not hits:
+                continue
+            ev = data[a]["obj"].evaluated_get(dg).to_mesh()
+            cen = [data[a]["obj"].matrix_world @ ev.polygons[pa].center for pa, pb in hits]
+            data[a]["obj"].evaluated_get(dg).to_mesh_clear()
+            bad = [c for c in cen if (c - end_a).length > 0.075 and (c - end_b).length > 0.075]   # merges
+            if bad:
+                c = bad[0]
+                issues["CLASH"].append("%s x %s (%d faces, e.g. at %.0f, %.0f, %.0f mm)" % (
+                    a, b, len(bad), c.x / F.MM, c.y / F.MM, c.z / F.MM - 150.0))
     total = 0
     for k, v in issues.items():
         print("%-10s %d" % (k, len(v)))

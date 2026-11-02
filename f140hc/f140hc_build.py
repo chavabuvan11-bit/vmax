@@ -121,42 +121,63 @@ P = {
         "traced_tubes": [
             (5, -355.0, [(0, 250, 50), (140, 250, 50), (270, 245, 50), (420, 240, 55), (520, 230, 55),
                          (650, 320, 60), (720, 470, 62)], [(1, 2)]),
-            (4, -345.0, [(260, 160, 62), (340, 90, 65), (450, 45, 65), (580, 40, 65), (680, 70, 65),
-                         (750, 150, 65), (770, 260, 65), (760, 380, 65), (720, 480, 65)], []),
-            (3, -330.0, [(560, 330, 55), (640, 380, 55), (700, 440, 58), (720, 480, 60)], []),
+            # cyl 5: upper arch under the cover lip, then the fat 2-into-1 pipe (~70 mm, weld seam where
+            # the cyl-4 arch joins) bending down into the clamp. Fat-pipe centreline from 3x crops of
+            # photo 13 + video frame 20.8 s; radius column = silhouette half-width in zoom px.
+            (4, -345.0, [(260, 160, 62), (340, 90, 64), (450, 45, 64), (580, 40, 64), (680, 70, 66),
+                         (726, 166, 84), (740, 266, 98), (714, 366, 98), (666, 454, 94), (640, 494, 90)], []),
+            # cyl 4: the lower front arch (photo 13 / video 20.8 s). From its port it runs rearward behind
+            # the cyl-6 bellows tube (hidden), rises at u~728, arches forward and merges into the fat pipe.
+            (3, -330.0, [(550, 224, 52), (460, 230, 52), (370, 220, 52), (336, 170, 53), (356, 116, 53),
+                         (430, 92, 53), (540, 92, 53), (640, 110, 54), (696, 160, 56)], [], {"merge_into": 4}),
+            # cyl 3: loop, then drops into the weld seam on the long run (photo 13 at u~1100, v~745) and
+            # merges into the cyl-2 pipe (same 2-into-1 layout as the rear group)
             (2, -340.0, [(860, 230, 52), (820, 120, 55), (880, 40, 55), (980, 20, 55), (1060, 70, 55),
-                         (1080, 170, 55), (1050, 280, 55), (980, 330, 55), (900, 345, 55), (820, 390, 58),
-                         (740, 450, 60)], []),
+                         (1080, 170, 55), (1058, 268, 55), (1078, 346, 56)], [], {"merge_into": 1}),
+            # cyl 2: loop, then the long run to the clamp; widens after the seam (2-into-1, ~50-55 mm)
             (1, -350.0, [(1150, 220, 50), (1110, 130, 50), (1180, 80, 50), (1260, 110, 50), (1290, 200, 50),
-                         (1260, 300, 52), (1180, 340, 55), (1080, 370, 55), (950, 400, 55), (800, 440, 58)], []),
+                         (1260, 300, 52), (1180, 340, 56), (1080, 370, 66), (950, 400, 72), (800, 440, 76)], []),
             (0, -345.0, [(1320, 250, 60), (1300, 380, 60), (1240, 480, 60), (1150, 520, 60), (1060, 520, 60),
                          (950, 560, 60), (880, 580, 60), (790, 545, 62), (730, 510, 62)], [(4, 5)]),
         ],
         "tube_zoom": (560.0, 560.0, 2.0),             # zoom origin u, v and scale
         "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
+        # jointly solved photo-13 camera (tools/bundle_adjust.py: lens pinned 100 mm, look-down prior
+        # from the stand-cup ellipses). Traced pixels are back-projected through it onto the plane
+        # x = anchor depth, so a tube sits exactly on its trace whatever its depth.
+        "photo13_cam": {"lens": 99.9990, "loc": (-3.890903, 0.375616, 0.532600), "size": (1800, 1200),
+                        "rot": ((-0.013987, 0.053072, -0.998493), (-0.999897, 0.002480, 0.014139), (0.003227, 0.998588, 0.053032))},
         "port_z_above_deck": 20.0,
-        "tube_scale": 1.35,                           # ~50 mm OD: video close-ups vs 46 mm coil boots
-        # depth (x) along each traced tube: start, loop, end. Top photo 20 puts the bundle's outer
-        # edge at x = -360 for y 150..300 (cam cover as ruler), so loop centrelines sit at ~-335.
-        "tube_depth": [(-300.0, -340.0, -330.0), (-300.0, -340.0, -330.0), (-300.0, -335.0, -330.0),
-                       (-300.0, -336.0, -330.0), (-300.0, -336.0, -330.0), (-300.0, -336.0, -330.0)],
+        # primary OD: each tube's traced silhouette radius (zoom px / 2 = photo px) times the camera's
+        # mm/px at that depth, no fudge factor. Spot checks in photo 13 (ray-cast verified): rear tube
+        # 50 px = 36 mm, the big arch ~64 px = 46 mm (the tubes are stepped: a weld ring is visible on
+        # the long run). Bellows convolutions 60 mm OD, end sleeves 44 mm OD, ~8 convolutions in 57 mm.
+        "bellows_od": 60.0, "bellows_sleeve_od": 44.0, "bellows_pitch": 7.2,
         "collector": (-382.0, 284.0, 62.0),
         # plan view (top photo 20): primaries leave their ports just outside the cover edge and
         # sweep outward toward the clamp, which sits ~50 mm outboard of the dome's centre
         "port_x": -292.0, "sweep_x": -372.0, "loop_bulge": 18.0,
         # triangulated landmarks (tools/triangulate.py, reference_data/picks_headers.json): photo 13 +
         # video frame 11.4 s. clamp (-366, 327, 59); rear bellows x -331; front bellows x -307
-        "clamp_pos": (-360.0, 323.0, 55.0),          # mean of the 2-view and side-ray solves
-        # depth anchors per traced tube {trace index: x}; port at -292, end at the collector
-        "tube_anchors": [{0: -304.0, 4: -304.0, 5: -304.0, 7: -335.0},
-                         {3: -335.0, 6: -340.0, 9: -345.0},
-                         {3: -335.0, 6: -345.0, 9: -350.0},
-                         {2: -340.0},
-                         {1: -355.0, 2: -400.0, 3: -415.0, 4: -405.0, 6: -375.0},   # arch top ~-415 (3 methods)
-                         {1: -322.0, 2: -322.0, 4: -335.0}],
-        "neck_out": 0.62,                             # outboard component of the inlet axis
+        # V-band ring: photo 13 sees it exactly edge-on as a 157 mm band from pixel (785, 790) to
+        # (953, 930); centre = band midpoint back-projected at x -330 (top photo 20: ring arc at
+        # -380..-395 apparent, T-bolt nuts -405..-415, i.e. ring outer edge ~-409 true). Edge-on means
+        # the axis has no x component; it rises 50 deg forward-up, perpendicular to the band.
+        "clamp_pos": (-330.0, 347.0, 9.0),
+        # depth (x) of every traced point, solved by tools/solve_header_depth.py: each point stays on
+        # its photo-13 pixel ray; tubes keep >= 4 mm between surfaces, centrelines stay inside the
+        # top-photo-20 envelope (x >= -360) and clear of the head (x <= -282)
+        "tube_anchors": [
+            {0: -283.5, 1: -288.8, 2: -294.5, 3: -300.3, 4: -306.2, 5: -312.1, 6: -317.9, 7: -323.5, 8: -328.7},
+            {0: -283.0, 1: -289.5, 2: -297.5, 3: -306.5, 4: -315.4, 5: -323.1, 6: -329.3, 7: -334.1, 8: -337.4, 9: -338.9},
+            {0: -281.1, 1: -281.9, 2: -291.2, 3: -304.5, 4: -318.3, 5: -329.4, 6: -337.5, 7: -344.0},
+            {0: -304.6, 1: -309.3, 2: -315.2, 3: -323.7, 4: -332.7, 5: -339.8, 6: -345.3, 7: -349.3, 8: -352.6},
+            {0: -281.8, 1: -283.5, 2: -292.1, 3: -304.7, 4: -316.9, 5: -323.0, 6: -315.6, 7: -302.2, 8: -305.4, 9: -315.8},
+            {0: -342.4, 1: -348.0, 2: -354.9, 3: -359.8, 4: -360.2, 5: -360.5, 6: -360.1}],
+        "merge_axis": (0.0, 50.3),                    # (inboard x per unit forward-up, elevation deg)
+        "collector_dist": 35.0,                       # merge plenum centre above the ring plane
         "sensor_angle": 22.0,                         # O2 sensor shoulder angle: joint solve puts it at x ~-359
-        "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
+        "clamp_r": 69.0,                              # neck radius; band adds 9 mm -> 156 mm ring
         "cat_x": 320.0,
         # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
         # front dome (video frames 20-22 s, photos 16/08 mirrored, side photo 13): an ellipsoidal
@@ -618,7 +639,9 @@ def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=
 def build_materials():
     return {
         "alu_cast": material("F140_Aluminium_Cast", (0.60, 0.61, 0.62), 1.0, 0.55, cast=0.35),
-        "block_cast": material("F140_Block_Cast", (0.30, 0.30, 0.30), 1.0, 0.62, cast=0.4),
+        # Amalgam photos 13/16: heads and block are mid-grey sand-cast aluminium, a shade darker than
+        # the gearbox case
+        "block_cast": material("F140_Block_Cast", (0.48, 0.48, 0.49), 1.0, 0.6, cast=0.4),
         "alu_mach": material("F140_Aluminium_Machined", (0.80, 0.80, 0.82), 1.0, 0.22),
         "steel": material("F140_Steel_Forged", (0.46, 0.46, 0.48), 1.0, 0.30),
         "titanium": material("F140_Titanium", (0.55, 0.52, 0.48), 1.0, 0.34),
@@ -1487,7 +1510,8 @@ def build():
     EX = P["exhaust"]
     m_pol = M["polished"]
 
-    def nurbs_tube(name, pts, r, mat, res=24):
+    def nurbs_tube(name, pts, r, mat, res=24, radii=None):
+        """radii: optional per-point radius factors (Blender interpolates point radius along the curve)"""
         cu = bpy.data.curves.new(name, 'CURVE')
         cu.dimensions = '3D'
         cu.bevel_depth = r * MM
@@ -1500,6 +1524,8 @@ def build():
         sp.points.add(len(pts) - 1)
         for j, p in enumerate(pts):
             sp.points[j].co = (p[0] * MM, p[1] * MM, p[2] * MM, 1)
+            if radii:
+                sp.points[j].radius = radii[j]
         sp.order_u = min(4, len(pts))
         sp.use_endpoint_u = True
         sp.resolution_u = res
@@ -1525,21 +1551,42 @@ def build():
         cx = -EX["cat_x"]
         dome_c = Vector((cx, CD["y_seam"], CD["zc"]))
         cl3 = Vector(EX["clamp_pos"])                                # triangulated clamp centre
-        ax3 = (cl3 - dome_c).normalized()
-        _tt = 1.0 / sqrt((ax3.x / CD["r"]) ** 2 + (ax3.y / CD["length"]) ** 2 + (ax3.z / CD["r"]) ** 2)
-        sp3 = dome_c + ax3 * _tt
-        col3 = cl3 + ax3 * 44.0
+        # ring / merge axis: side photo 13 puts it 39 deg forward-up (clamp ellipse); top photo 20
+        # needs the merge cone inboard of the ring (bundle edge x ~-381 ahead of the clamp), so the
+        # axis leans inboard as it runs forward. The neck runs back along it into the dome.
+        ma = EX["merge_axis"]
+        ax3 = Vector((ma[0], -cos(radians(ma[1])), sin(radians(ma[1])))).normalized()
+        semi = Vector((CD["r"], CD["length"], CD["r"]))
+        q0 = Vector([(cl3[i] - dome_c[i]) / semi[i] for i in range(3)])
+        qd = Vector([-ax3[i] / semi[i] for i in range(3)])
+        _a, _b, _c = qd.dot(qd), 2 * q0.dot(qd), q0.dot(q0) - 1.0
+        t_in = (-_b - sqrt(max(0.0, _b * _b - 4 * _a * _c))) / (2 * _a)   # first hit going back
+        t_in = max(4.0, t_in)
+        sp3 = cl3 - ax3 * t_in                                       # neck meets the dome here
+        col3 = cl3 + ax3 * EX["collector_dist"]
         collector = tuple(col3)
         # header tubes traced from the photo: port stub + traced centreline, flex bellows
         zu0, zv0, zk = EX["tube_zoom"]
         u0_, y0_, ky_, v0_, z0_, kz_ = EX["photo13"]
 
-        def zoom_to_yz(X, Y):
+        PC = EX["photo13_cam"]
+        Rc = Matrix(PC["rot"])
+        Lc = Vector(PC["loc"])
+        fpx = PC["lens"] / 36.0 * PC["size"][0]
+
+        def zoom_to_3d(X, Y, xdep):
+            """traced zoom pixel -> root-frame (y, z, mm per px) on the plane x = xdep"""
             u_, v_ = zu0 + X / zk, zv0 + Y / zk
-            return y0_ - (u_ - u0_) * ky_, z0_ - (v_ - v0_) * kz_
+            d_ = Rc @ Vector(((u_ - PC["size"][0] / 2) / fpx, -(v_ - PC["size"][1] / 2) / fpx, -1.0))
+            t_ = (xdep * MM - Lc.x) / d_.x
+            q_ = Lc + d_ * t_
+            zc_ = -(Rc.transposed() @ (q_ - Lc)).z
+            return q_.y / MM, q_.z / MM - (150.0 + P["sump_depth"] - 40.0), zc_ / fpx / MM
         mb_b = MB()
         mb_f = MB()
-        for ci, depth, trace, bell in EX["traced_tubes"]:
+        for entry in EX["traced_tubes"]:
+            ci, depth, trace, bell = entry[:4]
+            opt = entry[4] if len(entry) > 4 else {}
             c = b["cyls"][ci]
             yc = c["y"] - dy
             px_, pz_ = rot_xz(-b["inb"] * hw, deck + EX["port_z_above_deck"], b["gamma"])
@@ -1551,37 +1598,60 @@ def build():
             anc.setdefault(len(trace), collector[0])
             keys = sorted(anc)
             for j_, (X, Y, rz) in enumerate(trace):
-                y_, z_ = zoom_to_yz(X, Y)
                 k0 = max(k for k in keys if k <= j_)
                 k1 = min(k for k in keys if k >= j_)
                 t_ = 0.0 if k1 == k0 else (j_ - k0) / (k1 - k0)
                 t_ = t_ * t_ * (3 - 2 * t_)
                 dep = anc[k0] + (anc[k1] - anc[k0]) * t_
-                pts3.append((dep, y_, z_, rz / zk * ky_ * EX["tube_scale"]))
-            r_t = sum(p[3] for p in pts3) / len(pts3)
+                y_, z_, mmpx = zoom_to_3d(X, Y, dep)
+                pts3.append((dep, y_, z_, rz / zk * mmpx))
+            # primary radius = the tube's traced radius over its first half (the plain primary); where the
+            # trace widens (a merged 2-into-1 section) the curve's point radius swells to the traced value
+            half = pts3[:max(2, len(pts3) // 2)]
+            r_t = sum(p[3] for p in half) / len(half)
+            fac = [max(1.0, p[3] / r_t) if p[3] > 1.15 * r_t else 1.0 for p in pts3]
             path = [p0, p1, ((p1[0] + pts3[0][0]) / 2, (p1[1] + pts3[0][1]) / 2, (p1[2] + pts3[0][2]) / 2)]
-            path += [p[:3] for p in pts3] + [collector]
-            nurbs_tube(f"F140HC_Primary_C{c['num']:02d}", [W(p) for p in path], r_t, m_pol)
+            path += [p[:3] for p in pts3]
+            radii = [1.0, 1.0, 1.0] + fac
+            if "merge_into" not in opt:                      # merged tubes end inside their partner
+                path.append(collector)
+                radii.append(fac[-1])
+            nurbs_tube(f"F140HC_Primary_C{c['num']:02d}", [W(p) for p in path], r_t, m_pol,
+                       radii=radii if any(f > 1.0 for f in fac) else None)
             Mf, _ = axis_matrix(W(p0), W((p0[0] - 0.843, p0[1], p0[2] - 0.537)))
-            mb_f.rbox(0, 0, 5.0, 74.0, 58.0, 10.0, 3.0, 2, M=Mf)
-            for dxs in (-28.0, 28.0):
-                mb_f.lathe([(4.0, 0.0), (4.0, 22.0)], 12, Mf @ T(dxs, 0, 0), mi=1)
-                mb_f.lathe([(7.5, 10.0), (7.5, 18.0)], 6, Mf @ T(dxs, 0, 0), mi=1)
+            # port flange (photos 16 / 13): an obround plate on the diagonal between two studs, one
+            # front-lower and one rear-upper of the port; nuts on the studs
+            up_ = 1.0 if Mf.col[0][2] > 0 else -1.0          # sign of "up" along the flange's local X
+            studs = [(-22.0 * up_, -22.0), (22.0 * up_, 22.0)]
+            ob_ = []
+            for k_ in range(28):
+                a_ = 2 * pi * k_ / 28
+                cxo = (31.0 if cos(a_) >= 0 else -31.0)
+                ob_.append((cxo + 22.0 * cos(a_), 22.0 * sin(a_)))
+            rot45 = 0.7071
+            ob_ = [((a * rot45 - b * rot45) * up_, a * rot45 + b * rot45) for a, b in ob_]
+            mb_f.prism_xz([(a, -b) for a, b in ob_], 0.0, 9.0, M=Mf @ Matrix.Rotation(radians(90), 4, 'X'))
+            for su, sr in studs:
+                mb_f.lathe([(4.0, 0.0), (4.0, 22.0)], 12, Mf @ T(su, sr, 0), mi=1)
+                mb_f.lathe([(7.5, 9.0), (7.5, 17.0)], 6, Mf @ T(su, sr, 0), mi=1)
             for i0, i1 in bell:                              # corrugated flex section
                 Mb, Lb = axis_matrix(W(pts3[i0][:3]), W(pts3[i1][:3]))
-                n = 70
-                prof = [(r_t + 2.5 + 3.0 * (0.5 + 0.5 * cos(2 * pi * 9 * (k_ / (n - 1)))), Lb * k_ / (n - 1))
-                        for k_ in range(n)] + [(r_t + 0.5, Lb), (r_t + 0.5, 0.0)]
+                rs, rp = EX["bellows_sleeve_od"] / 2.0, EX["bellows_od"] / 2.0
+                Lcv = max(20.0, Lb - 24.0)                   # convolutions between two 12 mm sleeves
+                nconv = max(4, int(round(Lcv / EX["bellows_pitch"])))
+                n = nconv * 10 + 1
+                prof = [(rs, 0.0), (rs, 12.0)]
+                prof += [(rs + (rp - rs) * (0.5 - 0.5 * cos(2 * pi * nconv * k_ / (n - 1))),
+                          12.0 + Lcv * k_ / (n - 1)) for k_ in range(n)]
+                prof += [(rs, 12.0 + Lcv), (rs, Lb), (r_t + 0.5, Lb), (r_t + 0.5, 0.0)]
                 mb_b.lathe(prof, 40, Mb, closed=True)
-                for z_ in (0.0, Lb):
-                    mb_b.lathe([(r_t + 0.5, z_ - 7), (r_t + 4.5, z_ - 7), (r_t + 4.5, z_ + 7), (r_t + 0.5, z_ + 7)],
-                               40, Mb, closed=True)
         mb_b.finish(f"F140HC_FlexBellows_{tag}", c_ind, [M["bellows"]], parent=root)
         mb_f.finish(f"F140HC_HeaderFlanges_{tag}", c_ind, [M["steel"], M["bolt"]], parent=root)
-        mb = MB()                                            # tapered merge collector on the neck axis
+        mb = MB()                                            # merge plenum: ring -> domed cap the pipes enter
         _axw = Vector(W(tuple(ax3))) - Vector(W((0.0, 0.0, 0.0)))
-        mb.lathe([(EX["clamp_r"], -48), (EX["clamp_r"] + 3, -30), (EX["clamp_r"] + 8, 0), (EX["clamp_r"] + 6, 18),
-                  (0, 34)], 40, T(*W(collector)) @ _axw.to_track_quat('Z', 'Y').to_matrix().to_4x4())
+        rc_, dc_ = EX["clamp_r"], EX["collector_dist"]
+        mb.lathe([(rc_, -dc_ - 6), (rc_, -dc_ + 10), (rc_ - 6, -dc_ + 24), (rc_ - 18, 2), (rc_ - 34, 14),
+                  (0, 20)], 48, T(*W(collector)) @ _axw.to_track_quat('Z', 'Y').to_matrix().to_4x4())
         mb.finish(f"F140HC_HeaderCollector_{tag}", c_ind, [m_pol], parent=root)
         # catalyst: lofted canister + cones from the traced (y, top z, bottom z) sections
         cx = -EX["cat_x"]
@@ -1628,8 +1698,12 @@ def build():
         sa = radians(EX["sensor_angle"])
         Ms = T(*W((cx - 0.74 * 97.0 * sin(sa) - 9.0, sy, sz - 97.0 * (1 - cos(sa))))) @ \
             Matrix.Rotation(-sa if sx < 0 else sa, 4, 'Y')            # tilt outboard
-        mb.lathe([(14, -6), (14, 4), (12.5, 4), (12.5, 12)], 6, Ms, mi=1)
-        mb.lathe([(9, 12), (9, 34), (6, 40), (0, 40)], 24, Ms, mi=2)
+        if sx < 0:      # near bank (photo 13): a plain round bung with a hex socket, no sensor fitted
+            mb.lathe([(15, -8), (15, 12), (13, 15), (6.5, 15), (6.5, 13)], 32, Ms, mi=0)
+            mb.lathe([(6.5, 13.0), (6.5, 8.0), (0, 8.0)], 6, Ms, mi=2)
+        else:           # far bank (photo 16): sensor with its hex and body
+            mb.lathe([(14, -6), (14, 4), (12.5, 4), (12.5, 12)], 6, Ms, mi=1)
+            mb.lathe([(9, 12), (9, 34), (6, 40), (0, 40)], 24, Ms, mi=2)
         # slip joint on the outlet pipe
         ys0, ys1 = EX["slip_joint"]
         top0, bot0 = prof_[-1][1], prof_[-1][2]
@@ -1642,7 +1716,8 @@ def build():
         ax_w = Vector(W(tuple(ax3))) - Vector(W((0.0, 0.0, 0.0)))
         Mn = T(*W(tuple(sp3 - ax3 * 20.0))) @ ax_w.to_track_quat('Z', 'Y').to_matrix().to_4x4()
         mbn = MB()
-        mbn.lathe([(0, 0), (EX["clamp_r"] + 2, 0), (EX["clamp_r"] + 2, 40), (EX["clamp_r"], 46), (0, 46)], 48, Mn)
+        Ln = 20.0 + t_in + 6.0                                       # into the dome .. just past the ring
+        mbn.lathe([(0, 0), (EX["clamp_r"] + 2, 0), (EX["clamp_r"] + 2, Ln - 6), (EX["clamp_r"], Ln), (0, Ln)], 48, Mn)
         mbn.finish(f"F140HC_CatNeck_{tag}", c_ind, [m_pol], parent=root)
         a_ = Vector(W(tuple(cl3)))
         dirv = -ax_w
@@ -1651,10 +1726,16 @@ def build():
         r_c = EX["clamp_r"]
         mb.lathe([(r_c - 2, -9), (r_c + 6, -9), (r_c + 9, -3), (r_c + 9, 3), (r_c + 6, 9), (r_c - 2, 9)],
                  64, Mc, closed=True)
-        Mt = Mc @ T(0, r_c + 14, 0) @ RY(90)
+        # T-bolt + trunnion on the outboard rim, rod tangent to the ring (photo 13: it lies along the band)
+        rad_ = Vector((sx, 0.0, 0.0)); rad_ = (rad_ - dirv.normalized() * rad_.dot(dirv.normalized())).normalized()
+        tan_ = dirv.normalized().cross(rad_).normalized()
+        Mt = Matrix.Identity(4)
+        Mt.col[0][:3] = rad_; Mt.col[1][:3] = dirv.normalized().cross(tan_); Mt.col[2][:3] = tan_
+        Mt = T(*(a_ + rad_ * (r_c + 14))) @ Mt
         mb.lathe([(4.2, -58), (4.2, 58)], 16, Mt, mi=1)
-        mb.rbox(0, r_c + 12, 0, 22, 14, 18, 3, 2, M=Mc, mi=1)
+        mb.rbox(0, 0, 0, 14, 18, 22, 3, 2, M=T(*(a_ + rad_ * (r_c + 11))) @ Matrix(Mt.to_3x3()).to_4x4(), mi=1)
         mb.lathe([(7.5, 44), (7.5, 54)], 6, Mt, mi=1)
+        mb.lathe([(7.5, -54), (7.5, -44)], 6, Mt, mi=1)
         mb.finish(f"F140HC_VbandClamp_{tag}", c_ind, [m_pol, M["steel"]], parent=root)
         # outlet pipe to the muffler
         ox_, oz_ = cx, (prof_[-1][1] + prof_[-1][2]) / 2
