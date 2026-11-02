@@ -182,16 +182,21 @@ P = {
         # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
         # front dome (video frames 20-22 s, photos 16/08 mirrored, side photo 13): an ellipsoidal
         # cap as wide as the canister, ending ~150 mm ahead of the front seam
-        "cat_dome": {"y_seam": 449.0, "length": 150.0, "r": 97.0, "zc": -2.0, "rise": 12.0},   # +15 mm (photo 13 recheck)
-        "cat_sections": [(449, 95, -99), (470, 95, -97),
-                         (517, 96, -80), (576, 96, -93), (639, 97, -95), (687, 94, -97), (712, 64, -101),
-                         (760, 25, -107), (809, -2, -112), (850, -16, -116), (883, -26, -118),
-                         (912, -34, -120), (1000, -34, -122)],
-        "cat_beads": [449.0, 576.0, 687.0],
+        # dome: matches the re-traced can at the seam (r 86, centre -13); its front-bottom bulges low
+        # (photo 13: front-most outline at y ~309, z ~-64), so the centre line drops toward the tip
+        "cat_dome": {"y_seam": 449.0, "length": 150.0, "r": 87.0, "zc": -13.0, "rise": -15.0},
+        # canister + rear cone silhouette re-traced on a gridded full-res crop of photo 13 and back-projected
+        # through the solved camera at the can's axis depth (x -320). The earlier "+15 mm" correction was
+        # made through a 35 mm-lens camera whose perspective inflated near parts; this replaces it.
+        "cat_sections": [(449, 74, -99), (470, 74, -100), (532, 68, -103), (568, 66, -104), (603, 65, -104),
+                         (639, 61, -105), (675, 53, -107), (711, 38, -108), (746, 23, -108), (782, 7, -108),
+                         (818, -9, -106), (854, -27, -103), (876, -40, -100), (892, -45, -98),
+                         (905, -45, -98), (1000, -45, -98)],
+        "cat_beads": [449.0, 507.0, 682.0],                # seam lines at photo-13 u ~733 / 645 / 405
         # plan width vs height: top photo 20 shows the dome as round (outer edge -414 at y 410..460)
         # but the canister behind it narrower (outer -390 at y 500..560): an oval can, 0.74 as wide.
         "cat_oval": [(459.0, 1.0), (500.0, 0.74), (690.0, 0.74), (760.0, 0.9), (1000.0, 1.0)],
-        "sensor": (549.0, 97.0), "slip_joint": (916.0, 960.0),
+        "sensor": (549.0, 66.0), "sensor_r": 85.0, "slip_joint": (916.0, 960.0),
         "muffler_y": (1402.0, 1553.0), "muffler_x_span": (14.0, 340.0),
         "muffler_x": 220.0, "muffler_z": 120.0, "muffler_h": 210.0,
         "outlet_x": (120.0, 225.0),
@@ -217,14 +222,23 @@ P = {
                          (-62, -96, 75, "slots"), (-96, -106, 50, "nose")],
         "alt_lug": (-233.0, -40.0, 128.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
         "oil_pump_x": -172.0,
-        "oil_pump": {"y": (45.0, 337.0), "z": -76.0, "r": 33.0, "flange_y": 280.0,
-                     "elbow": [(-177.0, 190.0, -95.0), (-177.0, 205.0, -135.0), (-215.0, 215.0, -140.0)]},
-        "water_pump_body": {"x": -180.0, "y": -24.0, "z": -81.0, "sx": 60.0, "sy": 124.0, "sz": 132.0,
-                            "cover_yz": (-57.0, -66.0), "cover_r": 52.0,
-                            "stub": [(-195.0, -92.0, -50.0), (-232.0, -112.0, -28.0)]},
+        # oil pump / water pump: outlines picked in side photo 13 and back-projected through the solved
+        # camera at the part's depth (tools: see HANDOVER "back-projection")
+        "oil_pump": {"rear": (150.0, 205.0, 40.0), "front_box": (118.0, 64.0, 76.0, 90.0), "z": -78.0,
+                     "cover_y": 86.0, "relief": (161.0, -32.0), "boss": (143.0, -67.0),
+                     "elbow": [(-182.0, 194.0, -112.0), (-182.0, 192.0, -150.0)], "drive": (30.0, 88.0, 33.0)},
+        "sump_boss": (-146.0, 296.0, -75.0, 12.0, 45.0, 64.0),
+        "water_pump_body": {"x": -180.0, "y": 0.0, "z": -97.0, "sx": 58.0, "sy": 70.0, "sz": 118.0,
+                            "cover": (-58.0, -98.0, 75.0, 112.0), "cover_x": -205.0,
+                            "cover_bolts": [(-50.0, -48.0), (-87.0, -52.0), (-40.0, -142.0), (-88.0, -149.0),
+                                            (-96.0, -100.0)],
+                            "stub": [(-203.0, -100.0, -86.0), (-240.0, -114.0, -66.0)]},
         "oil_fittings": [(292.0, -50.0), (248.0, -62.0), (160.0, -46.0), (118.0, -46.0), (300.0, -110.0)],
         "oil_sensor": (-182.0, 180.0, -20.0),
-        "diff_centre": (936.0, 55.0),
+        # diff side cover: 11 rim bolts fit a circle (residual 0.2 px) centred at photo-13 pixel (65, 787),
+        # r 176 px = 131 mm at the case face; the polished output flange is concentric
+        "diff_centre": (944.0, 44.0), "diff_bolt_start_deg": -97.5,
+        "brace_rod": [(-172.0, 936.0, 200.0), (-205.0, 760.0, 200.0), (-254.0, 676.0, 190.0)],   # gearbox top -> head bracket
         "sump_lobe": (-215.0, 486.0, -107.0, 130.0, 111.0, 69.0),
         "rear_bracket": (-262.0, 671.0, 118.0, 150.0),         # x, y, z centre, height (touches head rear)
     },
@@ -642,6 +656,8 @@ def build_materials():
         # Amalgam photos 13/16: heads and block are mid-grey sand-cast aluminium, a shade darker than
         # the gearbox case
         "block_cast": material("F140_Block_Cast", (0.48, 0.48, 0.49), 1.0, 0.6, cast=0.4),
+        # water pump casting reads warmer and darker than the oil pump in photo 13 (~150/145/135 sRGB)
+        "wp_cast": material("F140_WaterPump_Cast", (0.40, 0.38, 0.34), 1.0, 0.62, cast=0.4),
         "alu_mach": material("F140_Aluminium_Machined", (0.80, 0.80, 0.82), 1.0, 0.22),
         "steel": material("F140_Steel_Forged", (0.46, 0.46, 0.48), 1.0, 0.30),
         "titanium": material("F140_Titanium", (0.55, 0.52, 0.48), 1.0, 0.34),
@@ -1307,43 +1323,68 @@ def build():
     mb.rbox(*lug, 4.0, 2)
     mb.lathe([(7, 0), (7, 9)], 6, T(lug[0] - lug[3] / 2 - 1, lug[1], lug[2]) @ RY(-90), mi=0)
     mb.finish("F140HC_Alternator", c_house, [m_alt, m_blk], parent=root)
-    # water pump: cast body with its round impeller cover facing outboard and an angled pipe stub
-    # (side photo 13 zoom: body u 1290-1460 / v 920-1070, cover centre u 1420 v 990, stub u 1480 v 940)
+    # water pump (side photo 13, u 1290-1500 / v 900-1065): rounded cast body with two ribs, a bolted
+    # rectangular cover facing outboard, and an outlet stub at the front whose open end faces the camera
     WP = NS["water_pump_body"]
     mb = MB()
-    mb.rbox(WP["x"], WP["y"], WP["z"], WP["sx"], WP["sy"], WP["sz"], 10.0, 3)
-    cxw = WP["x"] - WP["sx"] / 2
-    Mc = T(cxw, WP["cover_yz"][0], WP["cover_yz"][1]) @ RY(-90)          # local +Z -> outboard (-X)
-    mb.lathe([(0, 0), (WP["cover_r"], 0), (WP["cover_r"], 8), (WP["cover_r"] - 6, 13), (0, 15)], 48, Mc)
-    for i in range(8):
-        a_ = 2 * pi * i / 8
-        mb.lathe([(5.5, 8), (5.5, 14)], 6, Mc @ T((WP["cover_r"] - 5) * cos(a_), (WP["cover_r"] - 5) * sin(a_), 0), mi=1)
+    mb.rbox(WP["x"], WP["y"], WP["z"], WP["sx"], WP["sy"], WP["sz"], 14.0, 3)
+    for dz in (-20.0, 20.0):
+        mb.rbox(WP["x"] - 2, WP["y"], WP["z"] + dz, WP["sx"] + 6, WP["sy"] - 10, 5.0, 2.0, 2)
+    cy_, cz_, csy, csz = WP["cover"]
+    xc_ = WP["cover_x"]
+    mb.rbox((xc_ + WP["x"] - WP["sx"] / 2 + 6) / 2, cy_, cz_, abs(xc_ - (WP["x"] - WP["sx"] / 2 + 6)), csy - 8, csz - 8, 12.0, 3)
+    mb.rbox(xc_ + 4, cy_, cz_, 9.0, csy, csz, 16.0, 3)                          # cover plate
+    mb.rbox(xc_ - 1, cy_, cz_, 3.0, csy - 30, csz - 36, 10.0, 2)                # raised centre panel
+    for by, bz in WP["cover_bolts"]:
+        mb.lathe([(7.5, 0), (7.5, 4), (5.0, 4), (5.0, 8)], 6, T(xc_, by, bz) @ RY(-90), mi=1)
     p0s, p1s = Vector(WP["stub"][0]), Vector(WP["stub"][1])
     mb.between(tuple(p0s), tuple(p1s), 15.0)
-    mb.lathe([(12, 0), (18, 0), (18, 10), (12, 10)], 32,
+    mb.lathe([(11, 0), (18, 0), (18, 10), (11, 10)], 32,
              T(*p1s) @ (p1s - p0s).to_track_quat('Z', 'Y').to_matrix().to_4x4(), closed=True)
-    mb.finish("F140HC_WaterPumpHousing", c_house, [m_cast, M["steel"]], parent=root)
-    # oil pump: long multi-stage scavenge housing along y (side photo 13 zoom u 880-1280)
+    mb.finish("F140HC_WaterPumpHousing", c_house, [M["wp_cast"], M["steel"]], parent=root)
+    # oil pump (side photo 13, u 1060-1215 / v 885-1065): cylindrical rear stage, boxy front housing with
+    # a bolted end cover, relief-valve boss on top, a bolt boss, and the outlet elbow going down. A dark
+    # drive housing links it to the water pump; the sump wall behind carries a raised rectangular boss.
     ox = NS["oil_pump_x"]
     OP = NS["oil_pump"]
     mb = MB()
-    mb.rbox(ox, 186, -36, 40, 272, 22, 5.0, 2)                                  # mounting rail
-    mb.cyl_y(OP["r"], OP["y"][0], OP["y"][1], cx=ox, cz=OP["z"], seg=40)
-    for yy in range(int(OP["y"][0]) + 25, int(OP["y"][1]) - 10, 58):           # stage joints
-        mb.cyl_y(OP["r"] + 4, yy, yy + 6, cx=ox, cz=OP["z"], seg=40)
-    mb.rbox(ox, OP["flange_y"], OP["z"] + 6, 54, 40, 58, 5.0, 2)                # square mounting flange
-    e0, e1, e2 = (Vector(v_) for v_ in OP["elbow"])                            # outlet elbow: down, then out
-    mb.between(tuple(e0), tuple(e1), 17.0)
-    mb.between(tuple(e1), tuple(e2), 17.0)
-    mb.lathe([(0, -19), (19, -19), (19, 19), (0, 19)], 24, T(*e1))
-    mb.lathe([(13, 0), (21, 0), (21, 9), (13, 9)], 32, T(*e2) @ RY(-90), closed=True)
+    mb.rbox(ox + 22, 150, -40, 26, 150, 18, 4.0, 2)                              # mounting rail on the sump
+    y0r, y1r, rr = OP["rear"]
+    mb.cyl_y(rr, y0r, y1r, cx=ox, cz=OP["z"], seg=40)
+    for yy in (y0r, y0r + 26, y1r - 6):
+        mb.cyl_y(rr + 4, yy, yy + 6, cx=ox, cz=OP["z"], seg=40)
+    yb, sy_b, sx_b, sz_b = OP["front_box"]
+    mb.rbox(ox, yb, OP["z"] + 2, sx_b, sy_b, sz_b, 12.0, 3)
+    mb.rbox(ox, OP["cover_y"] + 4, OP["z"] + 2, sx_b - 6, 8.0, sz_b - 8, 14.0, 3)    # end cover
+    for dx_, dz_ in ((-26, -34), (-26, 38), (26, -34), (26, 38)):
+        mb.lathe([(5.5, 0), (5.5, 6)], 6, T(ox + dx_, OP["cover_y"], OP["z"] + 2 + dz_) @ RX(90), mi=1)
+    ry_, rz_ = OP["relief"]                                                      # relief valve on top
+    mb.lathe([(11, 0), (11, 10), (9, 10), (9, 20)], 24, T(ox - 8, ry_, rz_ - 8))
+    mb.lathe([(8.5, 20), (8.5, 28)], 6, T(ox - 8, ry_, rz_ - 8), mi=1)
+    by_, bz_ = OP["boss"]                                                        # bolt boss, outboard face
+    mb.lathe([(12, 0), (12, 8)], 24, T(ox - sx_b / 2 + 2, by_, bz_) @ RY(-90))
+    mb.lathe([(7.5, 8), (7.5, 14)], 6, T(ox - sx_b / 2 + 2, by_, bz_) @ RY(-90), mi=1)
+    e0, e1 = (Vector(v_) for v_ in OP["elbow"])                                  # outlet: straight down
+    mb.between(tuple(e0 + Vector((0, 0, 20))), tuple(e1), 15.0)
+    mb.rbox(e1.x, e1.y, e1.z - 4, 40, 34, 9, 5.0, 2)                            # 2-bolt flange
+    for dy_ in (-11.0, 11.0):
+        mb.lathe([(6, 0), (6, 6)], 6, T(e1.x - 12, e1.y + dy_, e1.z - 8.5) @ RX(180), mi=1)
     for yy, zz in NS["oil_fittings"]:                                            # hex fittings
-        mb.lathe([(9.5, 0), (9.5, 9), (6, 9), (6, 18)], 6, T(ox - 24, yy, zz) @ RY(-90), mi=1)
-    for yy in range(70, 320, 40):                                                # rail bolts
-        mb.lathe([(6.0, 0), (6.0, 6)], 6, T(ox - 20, yy, -36) @ RY(-90), mi=1)
+        if 80 < yy < 210:
+            mb.lathe([(9.5, 0), (9.5, 9), (6, 9), (6, 18)], 6, T(ox - 30, yy, zz) @ RY(-90), mi=1)
+    for yy in range(85, 230, 36):                                                # rail bolts
+        mb.lathe([(6.0, 0), (6.0, 6)], 6, T(ox + 9, yy, -40) @ RY(-90), mi=1)
     sx_, sy_, sz_ = NS["oil_sensor"]
     mb.lathe([(8, 0), (8, 8), (5, 8), (5, 26), (3, 30)], 16, T(sx_, sy_, sz_), mi=1)
     mb.finish("F140HC_OilPumpBody", c_house, [m_cast, M["steel"]], parent=root)
+    mb = MB()                                                                    # drive housing (dark)
+    d0, d1, dr = OP["drive"]
+    mb.cyl_y(dr, d0, d1 + 4, cx=ox, cz=OP["z"], seg=40)
+    mb.cyl_y(dr + 3, d1 - 6, d1, cx=ox, cz=OP["z"], seg=40)
+    mb.finish("F140HC_PumpDriveHousing", c_house, [M["dlc"]], parent=root)
+    mb = MB()
+    mb.rbox(*NS["sump_boss"], 8.0, 3)
+    mb.finish("F140HC_SumpSideBoss", c_house, [M["block_cast"]], parent=root)
     # black bracket at the rear of the near-bank head (side photo 13: u 393-453, v 630-783;
     # video 19-22 s): a vertical plate with a sensor block, bolted to the head's rear end
     mb = MB()
@@ -1360,19 +1401,33 @@ def build():
     dxc = -P["gearbox"]["half_width"]
     Md = T(dxc, dyc, dzc) @ RY(-90)
     mb = MB()
-    mb.lathe([(0, 0), (150, 0), (150, 9), (143, 15), (72, 17), (62, 23), (0, 23)], 64, Md)
-    for i in range(6):                                                           # radial ribs
-        a = 2 * pi * i / 6 + 0.3
-        mb.box(0, 0, 0, 78, 9, 9, M=Md @ Matrix.Rotation(a, 4, 'Z') @ T(104, 0, 19))
-    for i in range(12):                                                          # rim bolts
-        a = 2 * pi * i / 12
-        mb.lathe([(9, 15), (9, 17), (6.5, 17), (6.5, 23)], 6, Md @ T(131 * cos(a), 131 * sin(a), 0), mi=1)
-    mb.lathe([(0, 23), (46, 23), (46, 35), (0, 35)], 8, Md, mi=2)               # output flange
+    # stepped cast profile (photo 13, 2x): rim band with the bolt bosses, recessed panel, inner ring
+    mb.lathe([(0, 0), (150, 0), (150, 9), (146, 14), (118, 17), (114, 12), (90, 12), (87, 16), (80, 16),
+              (77, 12), (58, 13), (56, 18), (0, 18)], 72, Md)
+    a0 = radians(NS["diff_bolt_start_deg"])
+    for i in range(11):                                                          # double spokes per bolt
+        a = a0 + 2 * pi * i / 11
+        Mr = Md @ Matrix.Rotation(-a, 4, 'Z')
+        for off in (-7.0, 7.0):
+            mb.box(0, 0, 0, 58, 4.5, 6, M=Mr @ T(87, off, 15))
+        mb.lathe([(13, 12), (13, 17), (11, 19)], 24, Mr @ T(131, 0, 0))         # bolt boss
+        mb.lathe([(8.5, 19), (8.5, 21), (6.5, 23), (0, 23.5)], 24, Mr @ T(131, 0, 0), mi=1)   # button head
+        mb.lathe([(2.6, 23.4), (2.6, 23.8)], 6, Mr @ T(131, 0, 0), mi=3)                    # Torx recess
+    # polished output flange: 6 holes on a 41 mm circle, hub with turned grooves
+    mb.lathe([(0, 18), (52, 18), (52, 30), (49, 33), (0, 33)], 64, Md, mi=2)
     for i in range(6):
-        a = 2 * pi * i / 6
-        mb.lathe([(5.5, 35), (5.5, 42)], 6, Md @ T(34 * cos(a), 34 * sin(a), 0), mi=1)
-    mb.lathe([(0, 35), (22, 35), (22, 44), (16, 47), (0, 47)], 32, Md, mi=2)
-    mb.finish("F140HC_DiffSideCover", c_drive, [M["magnesium"], M["steel"], M["polished"]], parent=root)
+        a = 2 * pi * i / 6 + 0.26
+        mb.lathe([(5.0, 33.0), (5.0, 33.3), (0, 33.3)], 16, Md @ T(41 * cos(a), 41 * sin(a), 0), mi=3)
+    mb.lathe([(0, 33), (35, 33), (35, 40), (33, 42), (24, 42), (24, 43), (16, 43), (16, 44), (0, 44)], 64, Md, mi=2)
+    mb.finish("F140HC_DiffSideCover", c_drive, [M["magnesium"], M["steel"], M["polished"], M["black"]], parent=root)
+    # polished brace rod along the top of the gearbox to the rear of the near-bank head (photo 13)
+    mb = MB()
+    br = [Vector(p_) for p_ in NS["brace_rod"]]
+    for pa, pb in zip(br[:-1], br[1:]):
+        mb.between(tuple(pa), tuple(pb), 7.0)
+    for p_ in br:
+        mb.lathe([(0, -9), (9, -9), (9, 9), (0, 9)], 24, T(*p_))
+    mb.finish("F140HC_GearboxBraceRod", c_drive, [M["polished"]], parent=root)
 
     # coolant Y-manifold in the V and thermostat housing
     mb = MB()
@@ -1696,7 +1751,8 @@ def build():
         # oxygen sensor boss + sensor on top of the canister
         sy, sz = EX["sensor"]
         sa = radians(EX["sensor_angle"])
-        Ms = T(*W((cx - 0.74 * 97.0 * sin(sa) - 9.0, sy, sz - 97.0 * (1 - cos(sa))))) @ \
+        sr_ = EX["sensor_r"]
+        Ms = T(*W((cx - 0.74 * sr_ * sin(sa) - 9.0, sy, sz - sr_ * (1 - cos(sa))))) @ \
             Matrix.Rotation(-sa if sx < 0 else sa, 4, 'Y')            # tilt outboard
         if sx < 0:      # near bank (photo 13): a plain round bung with a hex socket, no sensor fitted
             mb.lathe([(15, -8), (15, 12), (13, 15), (6.5, 15), (6.5, 13)], 32, Ms, mi=0)
@@ -1742,7 +1798,8 @@ def build():
         mx, my0, mz = -EX["muffler_x"], EX["muffler_y"][0], EX["muffler_z"]
         nurbs_tube(f"F140HC_TailPipe_{tag}",
                    [W((ox_, prof_[-1][0] - 5, oz_)), W((ox_, prof_[-1][0] + 120, oz_ - 5)),
-                    W((ox_ + 15, my0 - 160, mz - 60)), W((mx, my0 + 10, mz - 20))], 44.0, m_pol)
+                    W((ox_ + 15, my0 - 160, mz - 60)), W((mx, my0 + 10, mz - 20))],
+                   (prof_[-1][1] - prof_[-1][2]) / 2.0, m_pol)
         # transverse muffler box with two square outlets on top (rear photos 10 / 18)
         mb = MB()
         y_a, y_b = EX["muffler_y"]
