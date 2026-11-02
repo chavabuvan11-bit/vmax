@@ -271,3 +271,17 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 
 - Work goes on branch `claude/magical-bell-4e0g8c`. Commit and push after each meaningful step.
 - Commit messages end with the attribution lines given in the session's system reminder.
+
+## 10. Recent changes (newest first)
+
+- Carbon is now near-black with a clear coat (base roughness 0.22). The mufflers are satin
+  polished.
+- Black bracket at the rear of the near-bank head (`NS["rear_bracket"]`).
+- Exhaust polish roughness raised to 0.19. photo_studio_01 is the default HDRI.
+- Oil pump and water pump rebuilt from a 2× zoom of photo 13.
+- 1.5 mm angle-limited bevels on all castings. Bolts that sat in a cam cover end wall were
+  removed.
+- Five-view joint solve (`tools/bundle_adjust.py`). The bad photo 16 clamp pick was removed.
+  Arch anchor −415, O2 sensor angle 22°.
+- Front geometry re-derived through the jointly solved front camera
+  (`tools/backproject.py`).
