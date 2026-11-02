@@ -35,14 +35,14 @@ def W_root(x, y, z):
 pts3, pts2 = [], []
 coils_px = [(512.9, 465.9), (658.3, 459.3), (799.2, 452.9), (945.0, 457.4), (1084.3, 457.6), (1224.6, 466.8)]
 for c, uv in zip(sorted(b0["cyls"], key=lambda c: -c["y"]), coils_px):   # photo: rear on the left
-    pts3.append(W_bank(o * 14.0, c["y"], z0 + P["cover_height"] + 13.0)); pts2.append(uv)
+    pts3.append(W_bank(o * 18.0, c["y"], z0 + P["cover_height"] + 13.0)); pts2.append(uv)
 y_rear = L + P["head_rear_ext"]
-pts3.append(W_root(-P["tb_offset_x"], y_rear + 46.0, P["pod_base_z"] + P["tb_height"])); pts2.append((352.0, 228.0))
 pts3.append(W_bank(o * 8.0, min(c["y"] for c in b0["cyls"]) - 0.68 * P["bore_pitch"], z0 + P["cover_height"] + 13.0)); pts2.append((1322.0, 432.0))   # filler cap
-pts3.append(W_bank(o * 82.0, hr, z0 + 4.0)); pts2.append((416.0, 598.0))            # cover rear-bottom
-pts3.append(W_bank(o * 82.0, hf, z0 + 4.0)); pts2.append((1478.0, 598.0))           # cover front-bottom
+pts3.append(W_bank(o * P["head_half_width"], hr, z0 + 4.0)); pts2.append((416.0, 598.0))            # cover rear-bottom
+pts3.append(W_bank(o * P["head_half_width"], hf, z0 + 4.0)); pts2.append((1478.0, 598.0))           # cover front-bottom
 X = np.array([tuple(p) for p in pts3], np.float64)
 U = np.array(pts2, np.float64)
+json.dump(dict(X=X.tolist(), U=U.tolist(), W=Ww, H=Hh), open(out + "/points.json", "w"))
 
 best = None
 lens_range = [float(v) for v in os.environ.get("F140_LENS", "15,400").split(",")]

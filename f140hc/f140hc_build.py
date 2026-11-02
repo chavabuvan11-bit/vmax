@@ -35,6 +35,7 @@ publish it. The whole engine re-derives from the P table, so swap numbers in as 
 better data (see README.md for where to look).
 """
 
+import os
 import sys
 import math
 from math import radians, sin, cos, sqrt, pi, asin
@@ -114,9 +115,36 @@ P = {
     # exhaust layout (mm, root frame; side photo 13 with the coil pitch as ruler, top photo 20
     # with the cam cover as ruler, rear photos 10 / 18). EST +-10%
     "exhaust": {
-        "collector_x": 300.0, "collector_y": 322.0, "collector_z": -10.0,
-        "loop_x": 385.0,                               # outermost bulge of the primaries
-        "cat_profile": [(0, 95), (40, 108), (120, 110), (260, 104), (330, 75), (370, 42)],
+        # Header tubes traced from a 2x zoom of side photo 13 (zoom origin u=560, v=560).
+        # Each tube: (cylinder index, depth x, [(X, Y, tube radius) in zoom px], bellows segments)
+        "traced_tubes": [
+            (5, -355.0, [(0, 250, 50), (140, 250, 50), (270, 245, 50), (420, 240, 55), (520, 230, 55),
+                         (650, 320, 60), (720, 470, 62)], [(1, 2)]),
+            (4, -345.0, [(260, 160, 62), (340, 90, 65), (450, 45, 65), (580, 40, 65), (680, 70, 65),
+                         (750, 150, 65), (770, 260, 65), (760, 380, 65), (720, 480, 65)], []),
+            (3, -330.0, [(560, 330, 55), (640, 380, 55), (700, 440, 58), (720, 480, 60)], []),
+            (2, -340.0, [(860, 230, 52), (820, 120, 55), (880, 40, 55), (980, 20, 55), (1060, 70, 55),
+                         (1080, 170, 55), (1050, 280, 55), (980, 330, 55), (900, 345, 55), (820, 390, 58),
+                         (740, 450, 60)], []),
+            (1, -350.0, [(1150, 220, 50), (1110, 130, 50), (1180, 80, 50), (1260, 110, 50), (1290, 200, 50),
+                         (1260, 300, 52), (1180, 340, 55), (1080, 370, 55), (950, 400, 55), (800, 440, 58)], []),
+            (0, -345.0, [(1320, 250, 60), (1300, 380, 60), (1240, 480, 60), (1150, 520, 60), (1060, 520, 60),
+                         (950, 560, 60), (880, 580, 60), (790, 545, 62), (730, 510, 62)], [(4, 5)]),
+        ],
+        "tube_zoom": (560.0, 560.0, 2.0),             # zoom origin u, v and scale
+        "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
+        "port_z_above_deck": 20.0,
+        "collector": (-335.0, 308.0, 44.0),
+        "clamp": (319.0, 29.0), "clamp_dir": (77.0, -64.0), "clamp_r": 33.0,
+        "cat_x": 320.0,
+        # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
+        "cat_sections": [(319, 60, -2), (340, 75, -20), (366, 81, -40), (400, 82, -58), (449, 80, -73),
+                         (470, 80, -82),
+                         (517, 81, -95), (576, 81, -108), (639, 82, -110), (687, 79, -112), (712, 49, -116),
+                         (760, 10, -122), (809, -17, -127), (850, -31, -131), (883, -41, -133),
+                         (912, -49, -135), (1000, -49, -137)],
+        "cat_beads": [449.0, 576.0, 687.0],
+        "sensor": (549.0, 82.0), "slip_joint": (916.0, 960.0),
         "muffler_y": (1402.0, 1553.0), "muffler_x_span": (14.0, 340.0),
         "muffler_x": 220.0, "muffler_z": 120.0, "muffler_h": 210.0,
         "outlet_x": (120.0, 225.0),
@@ -126,12 +154,27 @@ P = {
     # front accessories: (x, z) of the pulley centre vs crank axis, pulley r, body r, body length
     # front photo 11, scaled with the cam cover as the ruler (EST +-10%)
     "crank_pulley_r": 57.0,
+    # near-side lower details, traced from side photo 13 (y, z via the coil-pitch ruler)
+    "near_side": {
+        "alt_xz": (-244.0, 46.0),
+        # (y start, y end, radius, kind): rear cover, rear housing, stator band, front housing, nose
+        "alt_sections": [(50, 6, 70, "ribbed"), (6, -48, 75, "slots"), (-48, -62, 77, "band"),
+                         (-62, -96, 75, "slots"), (-96, -106, 50, "nose")],
+        "alt_lug": (-215.0, -40.0, 128.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
+        "water_pump": (-190.0, -90.0, 57.0),                   # x, z, radius (housing along y)
+        "water_outlet": (-108.0, -56.0),                       # y, z of the side outlet
+        "oil_pump_x": -172.0,
+        "oil_pump_cyl": (211.0, 94.0, -98.0, 44.0),            # y0, y1, z, radius
+        "oil_fittings": [(292.0, -50.0), (248.0, -62.0), (160.0, -46.0), (118.0, -46.0), (300.0, -110.0)],
+        "oil_sensor": (-182.0, 180.0, -20.0),
+        "diff_centre": (936.0, 55.0),
+    },
     "accessories": {
-        "alternator": (-244.0, 80.0, 30.0, 63.0, 150.0),
+        "alternator": (-244.0, 46.0, 32.0, 0, 0),         # body built in near_side
         "idler_upper": (-134.0, 84.0, 25.0, 0, 0),
         "idler_lower": (-176.0, 13.0, 24.0, 0, 0),
         "ac_compressor": (168.0, -13.0, 55.0, 58.0, 170.0),
-        "water_pump": (-202.0, -60.0, 34.0, 45.0, 70.0),
+        "water_pump": (-190.0, -90.0, 34.0, 0, 0),       # housing built in near_side
     },
     "head_front": -100.0,          # head / cam cover front face (block front = 0)
     "head_rear_ext": 10.0,         # head / cam cover overhang past the block rear
@@ -486,6 +529,7 @@ def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=
 def build_materials():
     return {
         "alu_cast": material("F140_Aluminium_Cast", (0.60, 0.61, 0.62), 1.0, 0.55),
+        "block_cast": material("F140_Block_Cast", (0.42, 0.42, 0.42), 1.0, 0.62),
         "alu_mach": material("F140_Aluminium_Machined", (0.80, 0.80, 0.82), 1.0, 0.22),
         "steel": material("F140_Steel_Forged", (0.46, 0.46, 0.48), 1.0, 0.30),
         "titanium": material("F140_Titanium", (0.55, 0.52, 0.48), 1.0, 0.34),
@@ -500,7 +544,9 @@ def build_materials():
         "ceramic": material("F140_Plug_Ceramic", (0.85, 0.85, 0.82), 0.0, 0.30),
         "bolt": material("F140_Bolt_Zinc", (0.70, 0.70, 0.66), 1.0, 0.30),
         "chain": material("F140_Chain", (0.20, 0.20, 0.21), 1.0, 0.30),
-        "magnesium": material("F140_Gearbox_Cast", (0.42, 0.43, 0.44), 1.0, 0.60),
+        "magnesium": material("F140_Gearbox_Cast", (0.58, 0.58, 0.57), 1.0, 0.55),
+        "polished": material("F140_Stainless_Polished", (0.80, 0.80, 0.82), 1.0, 0.15),
+        "bellows": material("F140_Bellows", (0.72, 0.72, 0.74), 1.0, 0.20),
         "envelope": material("F140_Envelope", (0.2, 0.6, 1.0), 0.0, 0.5, alpha=0.15),
     }
 
@@ -508,6 +554,28 @@ def build_materials():
 # ---------------------------------------------------------------------------------------
 # 4. SCENE PLUMBING
 # ---------------------------------------------------------------------------------------
+def setup_hdri(scn, path, strength=1.0, backdrop=(0.60, 0.60, 0.62)):
+    """Light and reflect with an HDRI; the camera sees a plain studio-grey backdrop."""
+    w = scn.world
+    w.use_nodes = True
+    nt = w.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputWorld")
+    env = nt.nodes.new("ShaderNodeTexEnvironment")
+    env.image = bpy.data.images.load(path, check_existing=True)
+    bg = nt.nodes.new("ShaderNodeBackground")
+    bg.inputs[1].default_value = strength
+    bg2 = nt.nodes.new("ShaderNodeBackground")
+    bg2.inputs[0].default_value = (*backdrop, 1.0)
+    lp = nt.nodes.new("ShaderNodeLightPath")
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(env.outputs["Color"], bg.inputs["Color"])
+    nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs[0])
+    nt.links.new(bg.outputs[0], mix.inputs[1])
+    nt.links.new(bg2.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+
+
 def remove_previous():
     old = bpy.data.collections.get(COLL_NAME)
     if not old:
@@ -925,7 +993,7 @@ def build():
     mb.box(0, L / 2, (cb + ct) / 2, 2 * cw, L, ct - cb)
     for b in g["banks"]:
         mb.box(0, L / 2, deck / 2, 2 * bw, L, deck, M=RY(b["gamma"]))
-    block = mb.finish("F140HC_Block", c_house, [M["alu_cast"]], parent=root)
+    block = mb.finish("F140HC_Block", c_house, [M["block_cast"]], parent=root)
     cut = MB()
     for b in g["banks"]:
         for c in b["cyls"]:
@@ -942,7 +1010,7 @@ def build():
         inb = b["inb"]
         mb = MB()
         mb.box(0, hc, deck + hh / 2, 2 * hw, hl, hh)
-        head = mb.finish(f"F140HC_Head_{b['label']}", c_house, [M["alu_cast"]], parent=be)
+        head = mb.finish(f"F140HC_Head_{b['label']}", c_house, [M["block_cast"]], parent=be)
         cut = MB()
         cut.box(0, hc, deck + P["gallery_floor"] + (hh - P["gallery_floor"]) / 2 + 1,
                 2 * (hw - 6), hl - 16, hh - P["gallery_floor"] + 2)
@@ -1088,6 +1156,82 @@ def build():
     mb = MB()
     mb.ribbon_xz(hull2d(belt_pts), 2.5, yp - 10.0, yp + 10.0)
     mb.finish("F140HC_AccessoryBelt", c_rot, [M["black"]], parent=root)
+    # ---------------- near-side lower details (traced from side photo 13) -----------------
+    NS = P["near_side"]
+    m_alt, m_blk, m_cast = M["alu_mach"], M["black"], M["alu_cast"]
+    # alternator: black rear cover, slotted housings, stator band, nose (pulley spins separately)
+    ax_, az_ = NS["alt_xz"]
+    mb = MB()
+    for y0s, y1s, r_, kind in NS["alt_sections"]:
+        ym, Ls = (y0s + y1s) / 2, abs(y1s - y0s)
+        if kind == "slots":
+            mb.cyl_y(r_ - 7, y0s, y1s, cx=ax_, cz=az_, seg=48, mi=1)
+            for yy in (min(y0s, y1s), max(y0s, y1s) - 5):
+                mb.ring_y(r_ - 8, r_, yy, yy + 5, cx=ax_, cz=az_, seg=48)
+            nb = 24
+            for i in range(nb):
+                a = 2 * pi * (i + 0.5) / nb
+                mb.box(0, 0, 0, 5.0, Ls - 6, 10.5, M=T(ax_, ym, az_) @ Matrix.Rotation(-a, 4, 'Y') @ T(r_ - 3, 0, 0))
+        elif kind == "ribbed":
+            mb.cyl_y(r_ - 3, y0s, y1s, cx=ax_, cz=az_, seg=48, mi=1)
+            for i in range(16):
+                a = 2 * pi * i / 16
+                mb.box(0, 0, 0, 6.0, Ls, 5.0, M=T(ax_, ym, az_) @ Matrix.Rotation(-a, 4, 'Y') @ T(r_ - 2, 0, 0), mi=1)
+        else:
+            mb.cyl_y(r_, y0s, y1s, cx=ax_, cz=az_, seg=48, mi=1)
+    lug = NS["alt_lug"]
+    mb.rbox(*lug, 4.0, 2)
+    mb.lathe([(7, 0), (7, 9)], 6, T(lug[0] - lug[3] / 2 - 1, lug[1], lug[2]) @ RY(-90), mi=0)
+    mb.finish("F140HC_Alternator", c_house, [m_alt, m_blk], parent=root)
+    # water-pump housing with its side outlet
+    wx, wz, wr = NS["water_pump"]
+    mb = MB()
+    mb.lathe([(0, 45), (wr + 5, 45), (wr + 5, 38), (wr, 36), (wr, -78), (wr - 6, -84), (wr - 6, -91), (0, -91)],
+             48, T(wx, 0, wz) @ ROT_Z_TO_Y)
+    for i in range(4):
+        a = 2 * pi * i / 4 + pi / 4
+        mb.lathe([(6.5, 0), (6.5, 7)], 6, T(wx + (wr + 2) * cos(a), 45, wz + (wr + 2) * sin(a)) @ ROT_Z_TO_Y)
+    po = NS["water_outlet"]
+    mb.between((wx, po[0], po[1]), (wx - 62, po[0], po[1]), 17.0)
+    mb.lathe([(14, 0), (19.5, 0), (19.5, 10), (14, 10)], 32,
+             T(wx - 62, po[0], po[1]) @ RY(-90), closed=True)
+    mb.finish("F140HC_WaterPumpHousing", c_house, [m_cast], parent=root)
+    # oil (scavenge/pressure) pump body along the lower crankcase
+    ox = NS["oil_pump_x"]
+    mb = MB()
+    mb.rbox(ox, 186, -36, 40, 272, 35, 5.0, 2)                                  # mounting rail
+    py0, py1, pz, pr_ = NS["oil_pump_cyl"]
+    mb.cyl_y(pr_, py1, py0, cx=ox - 6, cz=pz, seg=48)                            # pump cylinder
+    for yy in (py1, py0 - 9):
+        mb.cyl_y(pr_ + 6, yy, yy + 9, cx=ox - 6, cz=pz, seg=48)
+    mb.rbox(ox - 2, 266, -80, 48, 111, 103, 8.0, 3)                              # end block
+    mb.between((ox - 12, 226, -112), (ox - 28, 196, -158), 16.0)                  # outlet elbow
+    for yy, zz in NS["oil_fittings"]:                                            # hex fittings
+        mb.lathe([(9.5, 0), (9.5, 9), (6, 9), (6, 18)], 6, T(ox - 24, yy, zz) @ RY(-90), mi=1)
+    for yy in range(70, 320, 40):                                                # rail bolts
+        mb.lathe([(6.0, 0), (6.0, 6)], 6, T(ox - 20, yy, -36) @ RY(-90), mi=1)
+    sx_, sy_, sz_ = NS["oil_sensor"]
+    mb.lathe([(8, 0), (8, 8), (5, 8), (5, 26), (3, 30)], 16, T(sx_, sy_, sz_), mi=1)
+    mb.finish("F140HC_OilPumpBody", c_house, [m_cast, M["steel"]], parent=root)
+    # differential side cover and output flange on the gearbox (left of the section)
+    dyc, dzc = NS["diff_centre"]
+    dxc = -P["gearbox"]["half_width"]
+    Md = T(dxc, dyc, dzc) @ RY(-90)
+    mb = MB()
+    mb.lathe([(0, 0), (150, 0), (150, 9), (143, 15), (72, 17), (62, 23), (0, 23)], 64, Md)
+    for i in range(6):                                                           # radial ribs
+        a = 2 * pi * i / 6 + 0.3
+        mb.box(0, 0, 0, 78, 9, 9, M=Md @ Matrix.Rotation(a, 4, 'Z') @ T(104, 0, 19))
+    for i in range(12):                                                          # rim bolts
+        a = 2 * pi * i / 12
+        mb.lathe([(9, 15), (9, 17), (6.5, 17), (6.5, 23)], 6, Md @ T(131 * cos(a), 131 * sin(a), 0), mi=1)
+    mb.lathe([(0, 23), (46, 23), (46, 35), (0, 35)], 8, Md, mi=2)               # output flange
+    for i in range(6):
+        a = 2 * pi * i / 6
+        mb.lathe([(5.5, 35), (5.5, 42)], 6, Md @ T(34 * cos(a), 34 * sin(a), 0), mi=1)
+    mb.lathe([(0, 35), (22, 35), (22, 44), (16, 47), (0, 47)], 32, Md, mi=2)
+    mb.finish("F140HC_DiffSideCover", c_drive, [M["magnesium"], M["steel"], M["polished"]], parent=root)
+
     # coolant Y-manifold in the V and thermostat housing
     mb = MB()
     yc = hf - 12.0
@@ -1105,11 +1249,6 @@ def build():
     mb = MB()
     mb.box(0, L / 2, cb - P["sump_depth"] / 2, 2 * (cw - 10), L - 20, P["sump_depth"])
     sump = mb.finish("F140HC_DrySumpPan", c_house, [M["alu_cast"]], parent=root)
-    mb = MB()
-    mb.cyl_y(32.0, 60.0, 560.0, cx=-(cw + 18), cz=-70.0, seg=32)
-    for y in range(80, 560, 96):
-        mb.cyl_y(36.0, y, y + 8.0, cx=-(cw + 18), cz=-70.0, seg=32)
-    mb.finish("F140HC_ScavengePumps", c_house, [M["alu_mach"]], parent=root)
 
     # ---------------- intake (SP3: two carbon pods over the V, throttle bodies at the rear) ----
     zb = P["pod_base_z"]
@@ -1222,80 +1361,140 @@ def build():
     mb.box(0, (y_tip - 25 + y_rear) / 2, zb + 8, 2 * xi + 6, y_rear - y_tip + 25, 32)
     mb.finish("F140HC_IntakeSpine", c_ind, [M["alu_mach"]], parent=root)
 
-    # ---------------- exhaust (measured: side photo 13, top photo 20, rear photos 10 / 18) ----
-    # per bank: six looping primaries -> collector -> large catalytic converter running rearward
-    # beside the block -> pipe along the gearbox -> transverse muffler box with square outlets
+    # ---------------- exhaust: traced from side photo 13 through the solved camera ----------
+    # near bank (1-6, -X) coordinates are absolute; bank 7-12 is mirrored in X and shifted
+    # forward by the bank offset. Layout: 3-into-1 per half-bank -> flex bellows -> 2-into-1
+    # collector -> V-band clamp -> inlet funnel -> catalyst canister -> outlet cone -> slip joint.
     EX = P["exhaust"]
-    for b in g["banks"]:
-        inb = b["inb"]
-        sx = -inb                                       # outboard side in world x
-        cx_, cy_, cz_ = sx * EX["collector_x"], EX["collector_y"], EX["collector_z"]
-        for i, c in enumerate(b["cyls"]):
-            p0 = Vector(rot_xz(-inb * hw, deck + 45.0, b["gamma"]))
-            d = Vector(rot_xz(-inb * cos(radians(10)), sin(radians(10)), b["gamma"]))
-            yc = c["y"]
-            spread = (i - 2.5) * 9.0
-            pts = [(p0.x, yc, p0.y),
-                   (p0.x + d.x * 45, yc, p0.y + d.y * 45),
-                   (sx * (EX["loop_x"] - 25), yc + (cy_ - yc) * 0.12, p0.y + 45.0),
-                   (sx * EX["loop_x"], yc + (cy_ - yc) * 0.40, 125.0 + spread),
-                   (sx * (EX["loop_x"] - 20), yc + (cy_ - yc) * 0.75, 70.0 + spread * 0.5),
-                   (cx_ + sx * (spread * 0.6), cy_ - 30.0, cz_ + 55.0 + spread * 0.4),
-                   (cx_ + sx * (spread * 0.3), cy_, cz_ + 30.0)]
-            cu = bpy.data.curves.new(f"F140HC_Primary_C{c['num']:02d}", 'CURVE')
-            cu.dimensions = '3D'
-            cu.bevel_depth = 19 * MM
-            cu.bevel_resolution = 3
-            sp = cu.splines.new('NURBS')
-            sp.points.add(len(pts) - 1)
-            for j, p in enumerate(pts):
-                sp.points[j].co = (p[0] * MM, p[1] * MM, p[2] * MM, 1)
-            sp.order_u = 4
-            sp.use_endpoint_u = True
-            sp.resolution_u = 20
-            cu.materials.append(M["inconel"])
-            ob = bpy.data.objects.new(cu.name, cu)
-            c_ind.objects.link(ob)
-            ob.parent = root
-        # collector cone, V-band clamp, catalytic converter body (lathe along +Y)
-        mb = MB()
-        y0c = cy_ - 40.0
-        mb.lathe([(48, y0c), (62, y0c + 40), (64, y0c + 52)], 40, T(cx_, 0, cz_) @ ROT_Z_TO_Y)
-        mb.ring_y(60, 70, y0c + 40, y0c + 52, cx=cx_, cz=cz_, seg=40, mi=1)
-        prof = [(0, y0c + 52), (64, y0c + 52)] + [(r_, y0c + 52 + t) for t, r_ in EX["cat_profile"]] + \
-               [(0, y0c + 52 + EX["cat_profile"][-1][0])]
-        mb.lathe(prof, 48, T(cx_, 0, cz_) @ ROT_Z_TO_Y)
-        mb.finish(f"F140HC_Catalyst_{b['label']}", c_ind, [M["inconel"], M["steel"]], parent=root)
-        # pipe from the catalyst to the muffler
-        y_end = y0c + 52 + EX["cat_profile"][-1][0]
-        mx, my0, mz = sx * EX["muffler_x"], EX["muffler_y"][0], EX["muffler_z"]
-        pts = [(cx_, y_end - 10.0, cz_), (cx_, y_end + 140.0, cz_ - 35.0),
-               (sx * (EX["collector_x"] - 5), (y_end + my0) / 2, cz_ - 40.0),
-               (sx * (EX["collector_x"] - 25), my0 - 120.0, mz - 40.0), (mx, my0 + 10.0, mz - 20.0)]
-        cu = bpy.data.curves.new(f"F140HC_TailPipe_{b['label']}", 'CURVE')
+    m_pol = M["polished"]
+
+    def nurbs_tube(name, pts, r, mat, res=24):
+        cu = bpy.data.curves.new(name, 'CURVE')
         cu.dimensions = '3D'
-        cu.bevel_depth = 38 * MM
-        cu.bevel_resolution = 4
+        cu.bevel_depth = r * MM
+        cu.bevel_resolution = 5
+        try:
+            cu.use_fill_caps = True
+        except Exception:
+            pass
         sp = cu.splines.new('NURBS')
         sp.points.add(len(pts) - 1)
         for j, p in enumerate(pts):
             sp.points[j].co = (p[0] * MM, p[1] * MM, p[2] * MM, 1)
-        sp.order_u = 4
+        sp.order_u = min(4, len(pts))
         sp.use_endpoint_u = True
-        sp.resolution_u = 24
-        cu.materials.append(M["inconel"])
-        ob = bpy.data.objects.new(cu.name, cu)
+        sp.resolution_u = res
+        cu.materials.append(mat)
+        ob = bpy.data.objects.new(name, cu)
         c_ind.objects.link(ob)
         ob.parent = root
+        return ob
+
+    def axis_matrix(p0, p1):
+        a, b_ = Vector(p0), Vector(p1)
+        return T(*a) @ (b_ - a).to_track_quat('Z', 'Y').to_matrix().to_4x4(), (b_ - a).length
+
+    for b in g["banks"]:
+        sx = -b["inb"]                                   # outboard side in world x (-1 near bank)
+        dy = b["yshift"] - P["bank_offset"]              # 0 for the near bank, -offset for 7-12
+
+        def W(p):                                        # near-bank coords -> this bank
+            return (p[0] if sx < 0 else -p[0], p[1] + dy, p[2])
+        tag = b["label"]
+        # header tubes traced from the photo: port stub + traced centreline, flex bellows
+        zu0, zv0, zk = EX["tube_zoom"]
+        u0_, y0_, ky_, v0_, z0_, kz_ = EX["photo13"]
+
+        def zoom_to_yz(X, Y):
+            u_, v_ = zu0 + X / zk, zv0 + Y / zk
+            return y0_ - (u_ - u0_) * ky_, z0_ - (v_ - v0_) * kz_
+        mb_b = MB()
+        for ci, depth, trace, bell in EX["traced_tubes"]:
+            c = b["cyls"][ci]
+            yc = c["y"] - dy
+            px_, pz_ = rot_xz(-b["inb"] * hw, deck + EX["port_z_above_deck"], b["gamma"])
+            p0 = (-abs(px_), yc, pz_)
+            p1 = (p0[0] - 0.843 * 35, yc, p0[2] - 0.537 * 35)
+            pts3 = []
+            for X, Y, rz in trace:
+                y_, z_ = zoom_to_yz(X, Y)
+                pts3.append((depth, y_, z_, rz / zk * ky_))
+            r_t = sum(p[3] for p in pts3) / len(pts3)
+            path = [p0, p1, ((p1[0] + pts3[0][0]) / 2, (p1[1] + pts3[0][1]) / 2, (p1[2] + pts3[0][2]) / 2)]
+            path += [p[:3] for p in pts3] + [EX["collector"]]
+            nurbs_tube(f"F140HC_Primary_C{c['num']:02d}", [W(p) for p in path], r_t, m_pol)
+            for i0, i1 in bell:                              # corrugated flex section
+                Mb, Lb = axis_matrix(W(pts3[i0][:3]), W(pts3[i1][:3]))
+                n = 70
+                prof = [(r_t + 2.5 + 3.0 * (0.5 + 0.5 * cos(2 * pi * 9 * (k_ / (n - 1)))), Lb * k_ / (n - 1))
+                        for k_ in range(n)] + [(r_t + 0.5, Lb), (r_t + 0.5, 0.0)]
+                mb_b.lathe(prof, 40, Mb, closed=True)
+                for z_ in (0.0, Lb):
+                    mb_b.lathe([(r_t + 0.5, z_ - 7), (r_t + 4.5, z_ - 7), (r_t + 4.5, z_ + 7), (r_t + 0.5, z_ + 7)],
+                               40, Mb, closed=True)
+        mb_b.finish(f"F140HC_FlexBellows_{tag}", c_ind, [M["bellows"]], parent=root)
+        mb = MB()                                            # collector bulb above the clamp
+        mb.lathe([(0, -40), (20, -36), (34, -20), (38, 0), (34, 20), (20, 36), (0, 40)], 40,
+                 T(*W(EX["collector"])) @ RX(90.0 - 40.0))
+        mb.finish(f"F140HC_HeaderCollector_{tag}", c_ind, [m_pol], parent=root)
+        # catalyst: lofted canister + cones from the traced (y, top z, bottom z) sections
+        cx = -EX["cat_x"]
+        secs = []
+        def ring(y, ztop, zbot, grow=0.0):
+            zc, r = (ztop + zbot) / 2, (ztop - zbot) / 2 + grow
+            return [W((cx + r * cos(2 * pi * k_ / 56), y, zc + r * sin(2 * pi * k_ / 56))) for k_ in range(56)]
+        prof_ = EX["cat_sections"]
+        beads = EX["cat_beads"]
+        for j, (y, ztop, zbot) in enumerate(prof_):
+            for yb_ in beads:
+                if j > 0 and prof_[j - 1][0] < yb_ <= y:
+                    t0 = (yb_ - prof_[j - 1][0]) / (y - prof_[j - 1][0])
+                    tt = prof_[j - 1][1] + (ztop - prof_[j - 1][1]) * t0
+                    bb = prof_[j - 1][2] + (zbot - prof_[j - 1][2]) * t0
+                    for dyb, gr in ((-4.0, 0.0), (-2.5, 2.6), (2.5, 2.6), (4.0, 0.0)):
+                        secs.append(ring(yb_ + dyb, tt, bb, gr))
+            secs.append(ring(y, ztop, zbot))
+        mb = MB()
+        mb.loft(secs)
+        # oxygen sensor boss + sensor on top of the canister
+        sy, sz = EX["sensor"]
+        Ms = T(*W((cx, sy, sz)))
+        mb.lathe([(14, -6), (14, 4), (12.5, 4), (12.5, 12)], 6, Ms, mi=1)
+        mb.lathe([(9, 12), (9, 34), (6, 40), (0, 40)], 24, Ms, mi=2)
+        # slip joint on the outlet pipe
+        ys0, ys1 = EX["slip_joint"]
+        top0, bot0 = prof_[-1][1], prof_[-1][2]
+        mb.ring_y((top0 - bot0) / 2 - 1, (top0 - bot0) / 2 + 3.5, ys0 + dy, ys1 + dy,
+                  cx=W((cx, 0, 0))[0], cz=(top0 + bot0) / 2, seg=56)
+        mb.finish(f"F140HC_Catalyst_{tag}", c_ind, [m_pol, M["steel"], M["black"]], parent=root)
+        # V-band clamp + T-bolt between collector and inlet funnel
+        cy_, cz_ = EX["clamp"]
+        a_ = Vector(W((cx, cy_, cz_)))
+        dirv = Vector(W((cx, cy_ + EX["clamp_dir"][0], cz_ + EX["clamp_dir"][1]))) - a_
+        Mc = T(*a_) @ dirv.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        mb = MB()
+        r_c = EX["clamp_r"]
+        mb.lathe([(r_c - 2, -9), (r_c + 6, -9), (r_c + 9, -3), (r_c + 9, 3), (r_c + 6, 9), (r_c - 2, 9)],
+                 64, Mc, closed=True)
+        Mt = Mc @ T(0, r_c + 14, 0) @ RY(90)
+        mb.lathe([(4.2, -58), (4.2, 58)], 16, Mt, mi=1)
+        mb.rbox(0, r_c + 12, 0, 22, 14, 18, 3, 2, M=Mc, mi=1)
+        mb.lathe([(7.5, 44), (7.5, 54)], 6, Mt, mi=1)
+        mb.finish(f"F140HC_VbandClamp_{tag}", c_ind, [m_pol, M["steel"]], parent=root)
+        # outlet pipe to the muffler
+        ox_, oz_ = cx, (prof_[-1][1] + prof_[-1][2]) / 2
+        mx, my0, mz = -EX["muffler_x"], EX["muffler_y"][0], EX["muffler_z"]
+        nurbs_tube(f"F140HC_TailPipe_{tag}",
+                   [W((ox_, prof_[-1][0] - 5, oz_)), W((ox_, prof_[-1][0] + 120, oz_ - 5)),
+                    W((ox_ + 15, my0 - 160, mz - 60)), W((mx, my0 + 10, mz - 20))], 44.0, m_pol)
         # transverse muffler box with two square outlets on top (rear photos 10 / 18)
         mb = MB()
         y_a, y_b = EX["muffler_y"]
         x_in, x_out = EX["muffler_x_span"]
         mb.rbox(sx * (x_in + x_out) / 2, (y_a + y_b) / 2, mz, x_out - x_in, y_b - y_a, EX["muffler_h"], 28.0, 4)
-        for k_, ox in enumerate(EX["outlet_x"]):
-            mb.rbox(sx * ox, y_b - 30.0, mz + EX["muffler_h"] / 2 + 40.0, 92.0, 46.0, 110.0, 6.0, 3,
-                    M=None, mi=1)
-        mb.finish(f"F140HC_Muffler_{b['label']}", c_ind, [M["alu_mach"], M["inconel"]], parent=root)
+        for ox in EX["outlet_x"]:
+            mb.rbox(sx * ox, y_b - 30.0, mz + EX["muffler_h"] / 2 + 40.0, 92.0, 46.0, 110.0, 6.0, 3, mi=1)
+        mb.finish(f"F140HC_Muffler_{tag}", c_ind, [M["alu_mach"], m_pol], parent=root)
 
     # ---------------- gearbox placeholder ----------------
     mb = MB()
@@ -1466,6 +1665,11 @@ def build():
     except Exception:
         pass
 
+    hdr = os.environ.get("F140_HDRI")
+    if hdr and os.path.exists(hdr):
+        setup_hdri(scn, hdr)
+        for nm in ("Key", "Fill", "Rim"):
+            bpy.data.lights[f"F140HC_{nm}"].energy *= 0.35
     bpy.data.collections.remove(c_tmp)
     scn.frame_set(1)
 
