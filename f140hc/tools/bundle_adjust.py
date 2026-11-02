@@ -50,6 +50,12 @@ def feat_near(kind, i):
     raise ValueError(kind)
 
 
+def feat_far(kind, i):
+    """+X bank (7-12) feature = mirror of the near-bank feature, shifted forward by the offset."""
+    x, y, z = feat_near(kind, i)
+    return (-x, y - OFFSET, z)
+
+
 def front_corner(side, inner):
     gamma = -G if side < 0 else G
     inb = 1.0 if side < 0 else -1.0
@@ -76,20 +82,39 @@ def load_obs():
     obs.append(("photo11", ("corner", (-1, True)), f11["left_cover_inner_bottom_corner"]))
     obs.append(("photo11", ("corner", (1, True)), f11["right_cover_inner_bottom_corner"]))
     obs.append(("photo11", ("alternator", 0), f11["alternator_centre"]))
-    sp = json.load(open(os.path.join(RD, "specs", "video_011.4s_topdown.json")))
-    for kind, i, u, v in sp["points"]:
-        obs.append(("video114", (kind, i), [u, v]))
+    for view, fn in (("video114", "video_011.4s_topdown.json"), ("video214", "video_021.4s_lowfront.json"),
+                     ("photo16", "photo16_otherbank.json")):
+        sp = json.load(open(os.path.join(RD, "specs", fn)))
+        far = sp.get("bank", 0) == 1
+        for kind, i, u, v in sp["points"]:
+            obs.append((view, ((kind + "_far") if far else kind, i), [u, v]))
+    ph = json.load(open(os.path.join(RD, "picks_headers.json")))
+    vmap = {"photo13": "photo13", "video114": "video114", "photo16": "photo16"}
+    for label, views in ph["landmarks"].items():
+        for v, uv in views.items():
+            obs.append((vmap[v], ("lm", label), uv))
     return obs
 
 
-SIZES = {"photo13": (1800, 1200), "photo11": (1800, 1200), "video114": (1920, 1080)}
-INIT = {"photo13": "photo13_side_camera.json", "video114": "video_011.4s_topdown_camera.json"}
+SIZES = {"photo13": (1800, 1200), "photo11": (1800, 1200), "video114": (1920, 1080),
+         "video214": (1920, 1080), "photo16": (1800, 1200)}
+INIT = {"photo13": "photo13_side_camera.json", "video114": "video_011.4s_topdown_camera.json",
+        "video214": "video_021.4s_lowfront_camera.json", "photo16": "photo16_otherbank_camera.json"}
+MIRRORED = {"photo16"}             # landmarks seen on the other bank
 
 
-def model_point(key, kh, kv, alt):
+def model_point(key, kh, kv, alt, lms=None, view=None):
     kind, i = key
     if kind == "alternator":
         return np.array(alt)
+    if kind == "lm":
+        p = np.array(lms[i])
+        if view in MIRRORED:
+            p = np.array([-p[0], p[1] - OFFSET, p[2]])
+        return p
+    if kind.endswith("_far"):
+        q = feat_far(kind[:-4], i)
+        return np.array([q[0] * kh, q[1] * kh, q[2] * kv])
     if kind == "crank":
         p = (0.0, -137.0, 0.0)
     elif kind == "corner":
@@ -120,24 +145,31 @@ def init_cam(view):
 def main():
     obs = load_obs()
     views = sorted({o[0] for o in obs})
+    labels = sorted({o[1][1] for o in obs if o[1][0] == "lm"})
+    prev = json.load(open(os.path.join(RD, "measurements", "header_landmarks_3d.json")))
     x0 = [1.0, 1.0] + [-250.0, -110.0, 60.0]
     for v in views:
         x0 += list(init_cam(v))
+    nc = len(x0)
+    for lb in labels:
+        x0 += list(prev.get(lb, [-340.0, 350.0, 80.0]))
     x0 = np.array(x0, float)
 
     def resid(x):
         kh, kv, alt = x[0], x[1], x[2:5]
         cams = {v: x[5 + 7 * j: 12 + 7 * j] for j, v in enumerate(views)}
+        lms = {lb: x[nc + 3 * k: nc + 3 * k + 3] for k, lb in enumerate(labels)}
         r = []
         for v, key, uv in obs:
             W, H = SIZES[v]
-            r.extend(project(cams[v], model_point(key, kh, kv, alt), W, H) - np.array(uv))
+            r.extend(project(cams[v], model_point(key, kh, kv, alt, lms, v), W, H) - np.array(uv))
         r.append((x[0] - 1.0) * 20.0)                      # weak priors keep scales sane
         r.append((x[1] - 1.0) * 20.0)
         return np.array(r)
 
     lo = np.full_like(x0, -np.inf); hi = np.full_like(x0, np.inf)
     lo[0:2], hi[0:2] = 0.6, 1.5
+    lo[0], hi[0] = 0.9999, 1.0001          # absolute scale is unobservable from images: fix k_h (bore pitch ruler)
     for j in range(len(views)):
         lo[5 + 7 * j + 6], hi[5 + 7 * j + 6] = 20.0, 600.0
     res = least_squares(resid, x0, bounds=(lo, hi), x_scale='jac', max_nfev=4000)
@@ -145,6 +177,12 @@ def main():
     rr = resid(x)[:-2].reshape(-1, 2)
     print("k_h (x/y scale) %.3f   k_v (z scale) %.3f" % (x[0], x[1]))
     print("alternator centre (root mm): x %.0f  y %.0f  z %.0f" % tuple(x[2:5]))
+    lmo = {}
+    for k, lb in enumerate(labels):
+        p_ = x[nc + 3 * k: nc + 3 * k + 3]
+        lmo[lb] = [round(float(t), 1) for t in p_]
+        print("landmark %-14s x %7.1f  y %7.1f  z %7.1f" % (lb, *p_))
+    json.dump(lmo, open(os.path.join(RD, "measurements", "header_landmarks_ba.json"), "w"), indent=1)
     for j, v in enumerate(views):
         idx = [i for i, o in enumerate(obs) if o[0] == v]
         e = np.linalg.norm(rr[idx], axis=1)

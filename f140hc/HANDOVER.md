@@ -226,7 +226,17 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
       `reference_data/cameras/ba_photo11_camera.json` give the front casting outline, the A/C at
       (167, −25), the idlers, the water pump x (−162) and the alternator at (−257, z 37).
     - Use the `ba_*` cameras from now on, and extend the joint solve with more views and features
-      (photo 16 mirrored, video 21.4 s, flange bolts) rather than solving views one at a time.
+      rather than solving views one at a time.
+    - **Five-view version (current):** photos 11, 13 and 16 (mirrored), and video frames 11.4 s
+      and 21.4 s, with the header landmarks as free points.
+      - Absolute scale is unobservable from images, so k_h is fixed at 1 (the bore-pitch ruler).
+        k_v comes out at 0.997.
+      - Landmarks are in `measurements/header_landmarks_ba.json`. They agree with the model
+        within about 10 mm for both bellows, the O2 sensor and the alternator.
+      - The arch top comes out at −434, so the model anchor is now −415.
+      - **Clamp disagrees:** z 15 against 55 from the side photo. Recheck the clamp picks in
+        photo 16 and video 11.4 s. Photo 13 errors reach 42 px with five views, so one of the
+        added picks is probably wrong.
 - **After this section:** the front (timing cover shape, coolant manifold, belt detail), the
   intake pods (the user said to deprioritise them earlier), the gearbox, mufflers and
   tailpipes, and the +X side.
