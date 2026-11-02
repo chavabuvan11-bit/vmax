@@ -28,15 +28,43 @@ def feat(kind, i):
     raise ValueError(kind)
 X = np.array([tuple(be.matrix_world @ (Vector(feat(k, i)) * MM)) for k, i, u, v in spec["points"]])
 U = np.array([(u, v) for k, i, u, v in spec["points"]], np.float64)
+side = spec.get("cam_side", 0)        # -1: camera on the -X side of the engine, +1: +X side
+centre = X.mean(0)
+
+def valid(rv, tv):
+    R_, _ = cv2.Rodrigues(rv)
+    if ((R_ @ X.T).T + tv.reshape(3))[:, 2].min() <= 0:      # every point in front of the lens
+        return False
+    cam = -R_.T @ tv.reshape(3)
+    return side == 0 or np.sign(cam[0] - centre[0]) == side
+
+def guess(lens):                       # camera ~3 m out on the expected side, looking at the points
+    loc = centre + np.array([3.0 * (side or -1), -0.5, 1.0])
+    f_ = centre - loc; f_ /= np.linalg.norm(f_)
+    r_ = np.cross(f_, [0, 0, 1.0]); r_ /= np.linalg.norm(r_)
+    d_ = np.cross(f_, r_)                                  # OpenCV: x right, y down, z forward
+    Rc = np.vstack([r_, d_, f_])
+    return cv2.Rodrigues(Rc)[0], (-Rc @ loc).reshape(3, 1)
+
 best = None
 for lens in np.arange(20, 300, 1.0):
     fx = lens / 36.0 * Ww
     K = np.array([[fx, 0, Ww / 2], [0, fx, Hh / 2], [0, 0, 1]])
-    ok, rv, tv = cv2.solvePnP(X, U, K, None, flags=cv2.SOLVEPNP_ITERATIVE)
-    if not ok: continue
-    pr = cv2.projectPoints(X, rv, tv, K, None)[0].reshape(-1, 2)
-    e = np.sqrt(((pr - U) ** 2).sum(1))
-    if best is None or e.mean() < best[0]: best = (e.mean(), lens, rv, tv, e)
+    cands = []
+    for flag in (cv2.SOLVEPNP_ITERATIVE, cv2.SOLVEPNP_SQPNP, cv2.SOLVEPNP_EPNP):
+        try:
+            ok, rv, tv = cv2.solvePnP(X, U, K, None, flags=flag)
+            if ok: cands.append((rv, tv))
+        except cv2.error:
+            pass
+    rg, tg = guess(lens)
+    ok, rv, tv = cv2.solvePnP(X, U, K, None, rg.copy(), tg.copy(), True, cv2.SOLVEPNP_ITERATIVE)
+    if ok: cands.append((rv, tv))
+    for rv, tv in cands:
+        if not valid(rv, tv): continue
+        pr = cv2.projectPoints(X, rv, tv, K, None)[0].reshape(-1, 2)
+        e = np.sqrt(((pr - U) ** 2).sum(1))
+        if best is None or e.mean() < best[0]: best = (e.mean(), lens, rv, tv, e)
 e, lens, rv, tv, err = best
 R, _ = cv2.Rodrigues(rv)
 Rb = Matrix(R.T.tolist()) @ Matrix(((1, 0, 0), (0, -1, 0), (0, 0, -1)))

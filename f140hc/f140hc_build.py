@@ -135,12 +135,14 @@ P = {
         "photo13": (513.0, 605.0, 0.730, 600.0, 199.0, 0.737),   # u0, y0, mm/px, v0, z0, mm/px
         "port_z_above_deck": 20.0,
         "tube_scale": 1.18,                           # traced edges sit inside the highlights
-        "collector": (-335.0, 308.0, 44.0),
-        "clamp": (319.0, 29.0), "clamp_dir": (77.0, -64.0), "clamp_r": 33.0,
+        "collector": (-326.0, 282.0, 62.0),
+        "clamp_dir": (77.0, -64.0), "clamp_r": 34.0,     # ring axis points into the dome (side photo 13)
         "cat_x": 320.0,
         # traced catalyst outline: (y, top z, bottom z), clamp -> outlet
-        "cat_sections": [(319, 60, -2), (340, 75, -20), (366, 81, -40), (400, 82, -58), (449, 80, -73),
-                         (470, 80, -82),
+        # front dome (video frames 20-22 s, photos 16/08 mirrored, side photo 13): an ellipsoidal
+        # cap as wide as the canister, ending ~150 mm ahead of the front seam
+        "cat_dome": {"y_seam": 449.0, "length": 150.0, "r": 97.0, "zc": -17.0, "rise": 12.0},
+        "cat_sections": [(449, 80, -114), (470, 80, -112),
                          (517, 81, -95), (576, 81, -108), (639, 82, -110), (687, 79, -112), (712, 49, -116),
                          (760, 10, -122), (809, -17, -127), (850, -31, -131), (883, -41, -133),
                          (912, -49, -135), (1000, -49, -137)],
@@ -1476,7 +1478,16 @@ def build():
         def ring(y, ztop, zbot, grow=0.0):
             zc, r = (ztop + zbot) / 2, (ztop - zbot) / 2 + grow
             return [W((cx + r * cos(2 * pi * k_ / 56), y, zc + r * sin(2 * pi * k_ / 56))) for k_ in range(56)]
-        prof_ = EX["cat_sections"]
+        CD = EX["cat_dome"]
+        dome = []
+        for k_ in range(14):
+            t = 1.0 - k_ / 13.0                                   # 1 at the tip -> 0 at the seam
+            t = t ** 1.15
+            y_ = CD["y_seam"] - CD["length"] * t
+            r_ = CD["r"] * sqrt(max(0.0, 1.0 - t * t)) + 0.6
+            zc_ = CD["zc"] + CD["rise"] * t
+            dome.append((y_, zc_ + r_, zc_ - r_))
+        prof_ = dome + [sec for sec in EX["cat_sections"] if sec[0] > CD["y_seam"]]
         beads = EX["cat_beads"]
         for j, (y, ztop, zbot) in enumerate(prof_):
             for yb_ in beads:
@@ -1500,8 +1511,18 @@ def build():
         mb.ring_y((top0 - bot0) / 2 - 1, (top0 - bot0) / 2 + 3.5, ys0 + dy, ys1 + dy,
                   cx=W((cx, 0, 0))[0], cz=(top0 + bot0) / 2, seg=56)
         mb.finish(f"F140HC_Catalyst_{tag}", c_ind, [m_pol, M["steel"], M["black"]], parent=root)
-        # V-band clamp + T-bolt between collector and inlet funnel
-        cy_, cz_ = EX["clamp"]
+        # inlet neck + V-band clamp on the dome's upper-front face, axis forward-up
+        dvec = Vector((-EX["clamp_dir"][0], -EX["clamp_dir"][1])).normalized()  # (dy, dz) outward: fwd-up
+        # find where a ray from the dome centre along dvec meets the ellipsoid surface
+        cy0, cz0 = CD["y_seam"], CD["zc"]
+        tt = 1.0 / sqrt((dvec.x / CD["length"]) ** 2 + (dvec.y / CD["r"]) ** 2)
+        sy_, sz_ = cy0 + dvec.x * tt, cz0 + dvec.y * tt
+        cy_, cz_ = sy_ + dvec.x * 14.0, sz_ + dvec.y * 14.0
+        Mn = T(*W((cx, sy_ - dvec.x * 20.0, sz_ - dvec.y * 20.0))) @ \
+            Vector((0.0, dvec.x, dvec.y)).to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        mbn = MB()
+        mbn.lathe([(0, 0), (EX["clamp_r"] + 2, 0), (EX["clamp_r"] + 2, 40), (EX["clamp_r"], 46), (0, 46)], 48, Mn)
+        mbn.finish(f"F140HC_CatNeck_{tag}", c_ind, [m_pol], parent=root)
         a_ = Vector(W((cx, cy_, cz_)))
         dirv = Vector(W((cx, cy_ + EX["clamp_dir"][0], cz_ + EX["clamp_dir"][1]))) - a_
         Mc = T(*a_) @ dirv.to_track_quat('Z', 'Y').to_matrix().to_4x4()
