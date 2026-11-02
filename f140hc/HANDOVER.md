@@ -158,6 +158,9 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
 
 ## 7. Status of the focus section
 
+- **Rounded edges:** castings and housings carry a 1.5 mm angle-limited bevel modifier
+  (`P["edge_bevel_mm"]`) for realism. Bolts that sat in a cover end wall were removed
+  (`sanity.py` flagged them).
 - **Catalyst height:** raised 15 mm after a re-check against side photo 13. Its top now
   matches within about 2 px.
 - **Good, and agreeing across views:**
@@ -195,8 +198,13 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
        water bosses and head-bolt bosses (`F140HC_BlockSideDetail_*`).
      - **Still to do:** the black bracket near the bellhousing, oil lines and fittings, and
        exhaust port flange detail.
-  3. **Oil and water pump castings:** currently simplified boxes and cylinders. Use photos 13,
-     17 and 08 plus video frames 19–22 s.
+  3. **Oil and water pump castings:** rebuilt from a 2× zoom of photo 13.
+     - **Oil pump:** a long multi-stage cylinder (y 45–337, z −76, r 33) with stage joints, a
+       square flange, an outlet elbow down and out, fittings and a sensor.
+     - **Water pump:** a cast body with its round impeller cover facing outboard (r 52 at y −57,
+       z −66) and an angled pipe stub.
+     - **Still to do:** casting lobes and pipe runs. Use photos 13, 17 and 08 plus video frames
+       19–22 s.
   4. **Gearbox:** a box with an X-lattice of stiffening ribs and the differential cover.
      **Still to do:** the real case shape from photos 14, 15, 07, 12 and 20 (stepped
      housings, finned coolers at the rear sides, hydraulic unit, shift actuator).

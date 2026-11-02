@@ -195,10 +195,12 @@ P = {
         "alt_sections": [(50, 6, 70, "ribbed"), (6, -48, 75, "slots"), (-48, -62, 77, "band"),
                          (-62, -96, 75, "slots"), (-96, -106, 50, "nose")],
         "alt_lug": (-233.0, -40.0, 128.0, 34.0, 40.0, 46.0),   # mounting lug box (x, y, z, sx, sy, sz)
-        "water_pump": (-162.0, -90.0, 57.0),                   # x (front, joint camera), z (side), radius
-        "water_outlet": (-108.0, -56.0),                       # y, z of the side outlet
         "oil_pump_x": -172.0,
-        "oil_pump_cyl": (211.0, 94.0, -98.0, 44.0),            # y0, y1, z, radius
+        "oil_pump": {"y": (45.0, 337.0), "z": -76.0, "r": 33.0, "flange_y": 280.0,
+                     "elbow": [(-177.0, 190.0, -95.0), (-177.0, 205.0, -135.0), (-215.0, 215.0, -140.0)]},
+        "water_pump_body": {"x": -180.0, "y": -24.0, "z": -81.0, "sx": 60.0, "sy": 124.0, "sz": 132.0,
+                            "cover_yz": (-57.0, -66.0), "cover_r": 52.0,
+                            "stub": [(-195.0, -92.0, -50.0), (-232.0, -112.0, -28.0)]},
         "oil_fittings": [(292.0, -50.0), (248.0, -62.0), (160.0, -46.0), (118.0, -46.0), (300.0, -110.0)],
         "oil_sensor": (-182.0, 180.0, -20.0),
         "diff_centre": (936.0, 55.0),
@@ -1281,29 +1283,36 @@ def build():
     mb.rbox(*lug, 4.0, 2)
     mb.lathe([(7, 0), (7, 9)], 6, T(lug[0] - lug[3] / 2 - 1, lug[1], lug[2]) @ RY(-90), mi=0)
     mb.finish("F140HC_Alternator", c_house, [m_alt, m_blk], parent=root)
-    # water-pump housing with its side outlet
-    wx, wz, wr = NS["water_pump"]
+    # water pump: cast body with its round impeller cover facing outboard and an angled pipe stub
+    # (side photo 13 zoom: body u 1290-1460 / v 920-1070, cover centre u 1420 v 990, stub u 1480 v 940)
+    WP = NS["water_pump_body"]
     mb = MB()
-    mb.lathe([(0, 45), (wr + 5, 45), (wr + 5, 38), (wr, 36), (wr, -78), (wr - 6, -84), (wr - 6, -91), (0, -91)],
-             48, T(wx, 0, wz) @ ROT_Z_TO_Y)
-    for i in range(4):
-        a = 2 * pi * i / 4 + pi / 4
-        mb.lathe([(6.5, 0), (6.5, 7)], 6, T(wx + (wr + 2) * cos(a), 45, wz + (wr + 2) * sin(a)) @ ROT_Z_TO_Y)
-    po = NS["water_outlet"]
-    mb.between((wx, po[0], po[1]), (wx - 62, po[0], po[1]), 17.0)
-    mb.lathe([(14, 0), (19.5, 0), (19.5, 10), (14, 10)], 32,
-             T(wx - 62, po[0], po[1]) @ RY(-90), closed=True)
-    mb.finish("F140HC_WaterPumpHousing", c_house, [m_cast], parent=root)
-    # oil (scavenge/pressure) pump body along the lower crankcase
+    mb.rbox(WP["x"], WP["y"], WP["z"], WP["sx"], WP["sy"], WP["sz"], 10.0, 3)
+    cxw = WP["x"] - WP["sx"] / 2
+    Mc = T(cxw, WP["cover_yz"][0], WP["cover_yz"][1]) @ RY(-90)          # local +Z -> outboard (-X)
+    mb.lathe([(0, 0), (WP["cover_r"], 0), (WP["cover_r"], 8), (WP["cover_r"] - 6, 13), (0, 15)], 48, Mc)
+    for i in range(8):
+        a_ = 2 * pi * i / 8
+        mb.lathe([(5.5, 8), (5.5, 14)], 6, Mc @ T((WP["cover_r"] - 5) * cos(a_), (WP["cover_r"] - 5) * sin(a_), 0), mi=1)
+    p0s, p1s = Vector(WP["stub"][0]), Vector(WP["stub"][1])
+    mb.between(tuple(p0s), tuple(p1s), 15.0)
+    mb.lathe([(12, 0), (18, 0), (18, 10), (12, 10)], 32,
+             T(*p1s) @ (p1s - p0s).to_track_quat('Z', 'Y').to_matrix().to_4x4(), closed=True)
+    mb.finish("F140HC_WaterPumpHousing", c_house, [m_cast, M["steel"]], parent=root)
+    # oil pump: long multi-stage scavenge housing along y (side photo 13 zoom u 880-1280)
     ox = NS["oil_pump_x"]
+    OP = NS["oil_pump"]
     mb = MB()
-    mb.rbox(ox, 186, -36, 40, 272, 35, 5.0, 2)                                  # mounting rail
-    py0, py1, pz, pr_ = NS["oil_pump_cyl"]
-    mb.cyl_y(pr_, py1, py0, cx=ox - 6, cz=pz, seg=48)                            # pump cylinder
-    for yy in (py1, py0 - 9):
-        mb.cyl_y(pr_ + 6, yy, yy + 9, cx=ox - 6, cz=pz, seg=48)
-    mb.rbox(ox - 2, 266, -80, 48, 111, 103, 8.0, 3)                              # end block
-    mb.between((ox - 12, 226, -112), (ox - 28, 196, -158), 16.0)                  # outlet elbow
+    mb.rbox(ox, 186, -36, 40, 272, 22, 5.0, 2)                                  # mounting rail
+    mb.cyl_y(OP["r"], OP["y"][0], OP["y"][1], cx=ox, cz=OP["z"], seg=40)
+    for yy in range(int(OP["y"][0]) + 25, int(OP["y"][1]) - 10, 58):           # stage joints
+        mb.cyl_y(OP["r"] + 4, yy, yy + 6, cx=ox, cz=OP["z"], seg=40)
+    mb.rbox(ox, OP["flange_y"], OP["z"] + 6, 54, 40, 58, 5.0, 2)                # square mounting flange
+    e0, e1, e2 = (Vector(v_) for v_ in OP["elbow"])                            # outlet elbow: down, then out
+    mb.between(tuple(e0), tuple(e1), 17.0)
+    mb.between(tuple(e1), tuple(e2), 17.0)
+    mb.lathe([(0, -19), (19, -19), (19, 19), (0, 19)], 24, T(*e1))
+    mb.lathe([(13, 0), (21, 0), (21, 9), (13, 9)], 32, T(*e2) @ RY(-90), closed=True)
     for yy, zz in NS["oil_fittings"]:                                            # hex fittings
         mb.lathe([(9.5, 0), (9.5, 9), (6, 9), (6, 18)], 6, T(ox - 24, yy, zz) @ RY(-90), mi=1)
     for yy in range(70, 320, 40):                                                # rail bolts
