@@ -218,9 +218,16 @@ Specs are in `reference_data/specs/`. Their photo paths are relative to `$F140_R
      - photo 16
      - video orbit frames 54–60 s: +X side views
      Photo 08 suggests the topology matches the near bank (front tube drops into a bellows,
-     rear arches merge, rear bellows tube); the routing details differ. Method: trace photo 08
-     or 16 through the `ba_photo16` camera (now consistent with the model), then run the depth
-     solver with a photo-20 envelope for x > 0.
+     rear arches merge, rear bellows tube); the routing details differ.
+     **Photo 04 is the far-bank counterpart of photo 13:** a full +X side view at ~1.38 mm/px.
+     Its coils are at full-res pixels (390,538), (465,538), (540,538), (612,540), (688,540) and
+     (760,542), front to rear. The filler is at (338,530).
+     Method:
+     1. Solve photo 04's camera in the joint solve. Coils plus filler are nearly collinear, so add
+        off-line anchors: the cover's front-bottom corner, the throttle-body centre, the pod nose.
+     2. Trace the six far tubes in photo 04, as photo 13 was traced for the near bank.
+     3. Generalise `dump_headers` / `solve_header_depth` to a per-bank camera, with an x > 0
+        envelope from photo 20.
   2. **Front section:** photo 11's joint-solve camera is degenerate (six near-coplanar points).
      Add pulley centres, the coolant manifold hub and the pod tips, then trace the timing cover.
   3. **Gearbox case** behind the differential cover: the real one is a ribbed casting (photo 13

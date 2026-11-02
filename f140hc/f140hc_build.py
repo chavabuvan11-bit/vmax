@@ -673,9 +673,9 @@ def material(name, color, metallic=0.0, rough=0.5, coat=0.0, wrinkle=0.0, weave=
         _set(bsdf, "Coat Roughness", 0.025)
         tc = nt.nodes.new("ShaderNodeTexCoord")
         chk = nt.nodes.new("ShaderNodeTexChecker")
-        chk.inputs["Scale"].default_value = 320.0
-        chk.inputs["Color1"].default_value = (0.005, 0.005, 0.006, 1)
-        chk.inputs["Color2"].default_value = (0.022, 0.022, 0.025, 1)
+        chk.inputs["Scale"].default_value = 520.0          # ~2 mm tows; reads as a fine weave at 1-4 m
+        chk.inputs["Color1"].default_value = (0.006, 0.006, 0.007, 1)
+        chk.inputs["Color2"].default_value = (0.014, 0.014, 0.016, 1)
         nt.links.new(tc.outputs["Object"], chk.inputs["Vector"])
         nt.links.new(chk.outputs["Color"], bsdf.inputs["Base Color"])
     m.diffuse_color = (*color, alpha)
